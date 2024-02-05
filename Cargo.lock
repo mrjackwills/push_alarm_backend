@@ -998,7 +998,7 @@ dependencies = [
 
 [[package]]
 name = "push_alarm"
-version = "0.0.3"
+version = "0.1.0"
 dependencies = [
  "blinkt",
  "dotenvy",

@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   push_alarm:
-    image: push_alarm:0.0.3
+    image: push_alarm:0.1.0
     build:
       context: .
       dockerfile: Dockerfile
