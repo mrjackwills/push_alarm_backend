@@ -1,0 +1,33 @@
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS alarm (
+	alarm_id INTEGER PRIMARY KEY AUTOINCREMENT,
+	hour INTEGER NOT NULL CHECK (
+		hour >= 0
+		AND hour <= 23
+	),
+	minute INTEGER NOT NULL CHECK (
+		minute >= 0
+		AND minute <= 59
+	)
+) STRICT;
+
+CREATE TRIGGER  IF NOT EXISTS single_alarm
+BEFORE INSERT ON alarm
+WHEN (SELECT COUNT(*) FROM alarm) >= 1
+BEGIN
+    SELECT RAISE(FAIL, 'only one alarm allowed');
+END;
+
+CREATE TABLE IF NOT EXISTS request (
+	request_id INTEGER PRIMARY KEY AUTOINCREMENT,
+	timestamp INTEGER NOT NULL,
+	is_alarm INTEGER NOT NULL CHECK (is_alarm IN (0, 1))
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS timezone (
+	timezone_id INTEGER PRIMARY KEY AUTOINCREMENT CHECK (timezone_id = 1),
+	zone_name TEXT NOT NULL
+) STRICT;
+
+COMMIT;
