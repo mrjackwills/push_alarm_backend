@@ -6,7 +6,7 @@ FROM alpine:3.19 as SETUP
 
 # This should get automatically updated on every release via create_release.sh
 # DO NOT EDIT MANUALLY
-ARG CURRENT_VERSION=0.0.3
+ARG CURRENT_VERSION=0.1.0
 
 ARG DOCKER_GUID \
     DOCKER_UID \
