@@ -8,11 +8,7 @@ FROM alpine:3.19 as SETUP
 # DO NOT EDIT MANUALLY
 ARG CURRENT_VERSION=0.1.0
 
-ARG DOCKER_GUID \
-    DOCKER_UID \
-    DOCKER_TIME_CONT \
-    DOCKER_TIME_CITY \
-    DOCKER_APP_USER=app_user \
+ARG DOCKER_APP_USER=app_user \
     DOCKER_APP_GROUP=app_group
 
 ENV VIRT=".build_packages"
@@ -20,12 +16,9 @@ ENV TZ=${DOCKER_TIME_CONT}/${DOCKER_TIME_CITY}
 
 WORKDIR /app
 
-RUN addgroup -g ${DOCKER_GUID} -S ${DOCKER_APP_GROUP} \
-    && adduser -u ${DOCKER_UID} -S -G ${DOCKER_APP_GROUP} ${DOCKER_APP_USER} \
-    && apk --no-cache add --virtual ${VIRT} tzdata ca-certificates \
-    && cp /usr/share/zoneinfo/${TZ} /etc/localtime \
-    && update-ca-certificates \
-    && echo ${TZ} > /etc/timezone \
+RUN addgroup -S ${DOCKER_APP_GROUP} \
+    && adduser -S -G ${DOCKER_APP_GROUP} ${DOCKER_APP_USER} \
+    && apk --no-cache add --virtual ${VIRT} ca-certificates \
     && apk del ${VIRT} \
     && mkdir /db_data \
     && chown ${DOCKER_APP_USER}:${DOCKER_APP_GROUP} /db_data
@@ -49,12 +42,8 @@ RUN ARCH=$(uname -m) && \
 
 FROM scratch AS RUNNER
 
-ARG DOCKER_TIME_CONT \
-    DOCKER_TIME_CITY \
-    DOCKER_APP_USER=app_user \
+ARG DOCKER_APP_USER=app_user \
     DOCKER_APP_GROUP=app_group
-
-ENV TZ=${DOCKER_TIME_CONT}/${DOCKER_TIME_CITY}
 
 COPY --from=SETUP /app/ /app
 COPY --from=SETUP /etc/group /etc/passwd /etc/

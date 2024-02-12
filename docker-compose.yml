@@ -5,11 +5,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        - DOCKER_UID=${DOCKER_UID}
-        - DOCKER_GUID=${DOCKER_GUID}
-        - DOCKER_TIME_CONT=${DOCKER_TIME_CONT}
-        - DOCKER_TIME_CITY=${DOCKER_TIME_CITY}
     container_name: push_alarm
     volumes:
       - $HOME/push_alarm.d/db_data:/db_data
