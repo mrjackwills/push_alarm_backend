@@ -94,9 +94,9 @@ impl WSSender {
 
         let alarm_as_sec = i64::from(alarm_hour) * 60 * 60 + i64::from(alarm_minute) * 60;
 
-        // alarm is in range 0-6
-        if alarm_as_sec < ONE_HOUR_AS_SEC * 6 {
-            let limit = ONE_HOUR_AS_SEC * 24 + (alarm_as_sec - ONE_HOUR_AS_SEC * 6);
+        // alarm is in range 0-5
+        if alarm_as_sec < ONE_HOUR_AS_SEC * 5 {
+            let limit = ONE_HOUR_AS_SEC * 24 + (alarm_as_sec - ONE_HOUR_AS_SEC * 5);
             if current_as_sec >= limit {
                 return Err(());
             }
@@ -110,10 +110,9 @@ impl WSSender {
             }
         }
 
-        let lower_range = alarm_as_sec - ONE_HOUR_AS_SEC * 6;
-        let upper_range = alarm_as_sec + ONE_HOUR_AS_SEC;
+        let lower_range = alarm_as_sec - ONE_HOUR_AS_SEC * 5;
 
-        if (lower_range..=upper_range).contains(&current_as_sec) {
+        if (lower_range..=alarm_as_sec).contains(&current_as_sec) {
             return Err(());
         }
 
@@ -274,55 +273,55 @@ mod tests {
 
         // 5:15 am alarm
         let alarm = (5, 15);
-        test(alarm, (22, 59), true);
-        test(alarm, (23, 0), true);
-        test(alarm, (23, 15), false);
+        test(alarm, (23, 59), true);
+        test(alarm, (0, 10), true);
+        test(alarm, (0, 15), false);
         test(alarm, (1, 59), false);
         test(alarm, (5, 0), false);
-        test(alarm, (6, 0), false);
-        test(alarm, (6, 15), false);
-        test(alarm, (6, 16), true);
-        test(alarm, (7, 0), true);
+        test(alarm, (5, 14), false);
+        test(alarm, (5, 15), false);
+        test(alarm, (5, 16), true);
 
         // 06:15 alarm
         let alarm = (6, 15);
-        test(alarm, (22, 59), true);
-        test(alarm, (23, 0), true);
+        test(alarm, (23, 59), true);
         test(alarm, (0, 0), true);
-        test(alarm, (0, 15), false);
-        test(alarm, (1, 59), false);
-        test(alarm, (6, 15), false);
-        test(alarm, (7, 15), false);
-        test(alarm, (7, 16), true);
-        test(alarm, (8, 0), true);
+        test(alarm, (0, 15), true);
+		test(alarm, (1, 14), true);
+		test(alarm, (1, 15), false);
+        test(alarm, (3, 59), false);
+        test(alarm, (6, 14), false);
+		test(alarm, (6, 15), false);
+		test(alarm, (6, 16),true);
 
         // 12:15 alarm
         let alarm = (12, 15);
-        test(alarm, (5, 59), true);
-        test(alarm, (6, 0), true);
+        test(alarm, (6, 59), true);
+        test(alarm, (7, 0), true);
+        test(alarm, (12, 14), false);
         test(alarm, (12, 15), false);
-        test(alarm, (13, 15), false);
-        test(alarm, (13, 16), true);
+        test(alarm, (12, 16), true);
         test(alarm, (14, 0), true);
 
         // 18:15 alarm
         let alarm = (18, 15);
-        test(alarm, (0, 15), true);
-        test(alarm, (11, 59), true);
-        test(alarm, (12, 14), true);
-        test(alarm, (12, 15), false);
-        test(alarm, (18, 0), false);
-        test(alarm, (19, 14), false);
-        test(alarm, (19, 15), false);
+        test(alarm, (1, 15), true);
+        test(alarm, (12, 59), true);
+        test(alarm, (13, 14), true);
+        test(alarm, (13, 15), false);
+        test(alarm, (18, 14), false);
+        test(alarm, (18, 15), false);
+        test(alarm, (18, 16), true);
         test(alarm, (23, 15), true);
 
-        // 23:15 alarm
-        let alarm = (23, 15);
-        test(alarm, (17, 14), true);
-        test(alarm, (17, 15), false);
-        test(alarm, (23, 15), false);
+        // 00:15 alarm
+        let alarm = (0, 15);
+        test(alarm, (16, 14), true);
+        test(alarm, (19, 14), true);
+		test(alarm, (19, 15), false);
+        test(alarm, (23, 14), false);
+        test(alarm, (0, 14), false);
         test(alarm, (0, 15), false);
         test(alarm, (0, 16), true);
-        test(alarm, (1, 15), true);
     }
 }

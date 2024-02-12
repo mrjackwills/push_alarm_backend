@@ -61,7 +61,7 @@ impl PushRequest {
 
     #[cfg(test)]
     #[allow(clippy::unused_async)]
-    async fn send_request(_url: Url) -> Result<PostRequest, AppError> {
+    async fn send_request(_: Url) -> Result<PostRequest, AppError> {
         let _client = Self::get_client()?;
         Ok(PostRequest {
             status: 1,
