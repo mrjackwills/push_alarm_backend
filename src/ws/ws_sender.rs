@@ -287,12 +287,12 @@ mod tests {
         test(alarm, (23, 59), true);
         test(alarm, (0, 0), true);
         test(alarm, (0, 15), true);
-		test(alarm, (1, 14), true);
-		test(alarm, (1, 15), false);
+        test(alarm, (1, 14), true);
+        test(alarm, (1, 15), false);
         test(alarm, (3, 59), false);
         test(alarm, (6, 14), false);
-		test(alarm, (6, 15), false);
-		test(alarm, (6, 16),true);
+        test(alarm, (6, 15), false);
+        test(alarm, (6, 16), true);
 
         // 12:15 alarm
         let alarm = (12, 15);
@@ -318,7 +318,7 @@ mod tests {
         let alarm = (0, 15);
         test(alarm, (16, 14), true);
         test(alarm, (19, 14), true);
-		test(alarm, (19, 15), false);
+        test(alarm, (19, 15), false);
         test(alarm, (23, 14), false);
         test(alarm, (0, 14), false);
         test(alarm, (0, 15), false);
