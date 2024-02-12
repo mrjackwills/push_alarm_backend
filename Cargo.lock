@@ -133,15 +133,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed570934406eb16438a4e976b1b4500774099c13b8cb96eec99f620f05090ddf"
 
 [[package]]
-name = "blinkt"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae9408f59052d44e6e0ed46cdb76b0f2f82bda8b32f18c99db15721b8821036f"
-dependencies = [
- "rppal",
-]
-
-[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1000,7 +991,6 @@ dependencies = [
 name = "push_alarm"
 version = "0.1.0"
 dependencies = [
- "blinkt",
  "dotenvy",
  "figlet-rs",
  "futures-util",
@@ -1152,15 +1142,6 @@ dependencies = [
  "spin",
  "untrusted",
  "windows-sys 0.48.0",
-]
-
-[[package]]
-name = "rppal"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "815253b59e1b9c89918977155f7a4f39007cfe2b0cc5cf50615f9df275b9453c"
-dependencies = [
- "libc",
 ]
 
 [[package]]
