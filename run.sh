@@ -1,13 +1,6 @@
 #!/bin/bash
 
-# v0.1.0
-
-DOCKER_GUID=$(id -g)
-DOCKER_UID=$(id -u)
-DOCKER_TIME_CONT="America"
-DOCKER_TIME_CITY="New_York"
-
-DOCKER_GPIO=$(getent group gpio | cut -d: -f3)
+# run.sh v0.2.1
 
 RED='\033[0;31m'
 YELLOW='\033[0;33m'
@@ -22,45 +15,16 @@ if ! [ -x "$(command -v dialog)" ]; then
 	error_close "dialog is not installed"
 fi
 
-# $1 string - question to ask
-ask_yn() {
-	printf "%b%s? [y/N]:%b " "${GREEN}" "$1" "${RESET}"
-}
-
-# return user input
-user_input() {
-	read -r data
-	echo "$data"
-}
-
 production_up() {
-	DOCKER_GUID=${DOCKER_GUID} \
-		DOCKER_UID=${DOCKER_UID} \
-		DOCKER_TIME_CONT=${DOCKER_TIME_CONT} \
-		DOCKER_TIME_CITY=${DOCKER_TIME_CITY} \
-		DOCKER_GPIO=${DOCKER_GPIO} \
-		DOCKER_BUILDKIT=0 \
-		docker compose up -d
+	docker compose up -d
 }
 
 production_down() {
-	DOCKER_GUID=${DOCKER_GUID} \
-		DOCKER_UID=${DOCKER_UID} \
-		DOCKER_TIME_CONT=${DOCKER_TIME_CONT} \
-		DOCKER_TIME_CITY=${DOCKER_TIME_CITY} \
-		DOCKER_GPIO=${DOCKER_GPIO} \
-		DOCKER_BUILDKIT=0 \
-		docker compose -f docker-compose.yml down
+	docker compose -f docker-compose.yml down
 }
 
 production_rebuild() {
-	DOCKER_GUID=${DOCKER_GUID} \
-		DOCKER_UID=${DOCKER_UID} \
-		DOCKER_TIME_CONT=${DOCKER_TIME_CONT} \
-		DOCKER_TIME_CITY=${DOCKER_TIME_CITY} \
-		DOCKER_GPIO=${DOCKER_GPIO} \
-		DOCKER_BUILDKIT=0 \
-		docker compose up -d --build
+	docker compose up -d --build
 }
 
 git_pull_branch() {
@@ -121,7 +85,6 @@ main() {
 			;;
 		4)
 			pull_branch
-			break
 			;;
 		esac
 	done
