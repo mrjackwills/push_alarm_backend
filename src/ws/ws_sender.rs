@@ -59,17 +59,19 @@ impl WSSender {
                 MessageValues::Valid(msg, unique) => {
                     self.unique = Some(unique);
                     match msg {
-                        ParsedMessage::AlarmDelete => self.delete().await,
-                        ParsedMessage::Restart => self.restart().await,
-                        ParsedMessage::TimeZone(timezone) => self.time_zone(timezone.zone).await,
+                        ParsedMessage::AlarmDelete => self.alarm_delete().await,
+                        ParsedMessage::AlarmDismiss => self.alarm_dismiss().await,
+
                         ParsedMessage::AlarmUpdate(hm) => {
-                            self.update_alarm(hm.hour, hm.minute).await;
+                            self.alarm_update(hm.hour, hm.minute).await;
                         }
                         ParsedMessage::AlarmAdd(hm) => {
-                            self.add_alarm(hm.hour, hm.minute).await;
+                            self.alarm_add(hm.hour, hm.minute).await;
                         }
-                        ParsedMessage::Status => self.send_status().await,
+                        ParsedMessage::Restart => self.restart().await,
                         ParsedMessage::TestRequest(msg) => self.test_request(msg).await,
+                        ParsedMessage::TimeZone(timezone) => self.time_zone(timezone.zone).await,
+                        ParsedMessage::Status => self.send_status().await,
                     }
                 }
             }
@@ -120,7 +122,7 @@ impl WSSender {
     }
 
     /// Add a new alarm to database, and update alarm_schedule
-    async fn add_alarm(&mut self, hour: u8, minute: u8) {
+    async fn alarm_add(&mut self, hour: u8, minute: u8) {
         if let Err(e) = ModelAlarm::add(&self.db, (hour, minute)).await {
             tracing::error!("{e}");
             self.send_error(&format!("{e}")).await;
@@ -130,8 +132,34 @@ impl WSSender {
         }
     }
 
+    /// Add a new alarm to database, and update alarm_schedule
+    async fn alarm_dismiss(&mut self) {
+        self.sx.send(CronMessage::AlarmDismiss).await.ok();
+    }
+
+    /// Delete all alarm in database, and update alarm_schedule
+    async fn alarm_delete(&mut self) {
+        if let Ok(Some(alarm)) = ModelAlarm::get(&self.db).await {
+            if let Some(current_time) = ModelTimezone::get(&self.db)
+                .await
+                .unwrap_or_default()
+                .to_time()
+            {
+                if Self::valid_change(current_time, alarm.hour, alarm.minute).is_ok() {
+                    if let Err(e) = ModelAlarm::delete(&self.db).await {
+                        tracing::error!("{e}");
+                    }
+                    self.sx.send(CronMessage::Reset).await.ok();
+                    self.send_status().await;
+                } else {
+                    self.too_close().await;
+                }
+            }
+        }
+    }
+
     /// Update the alarm in the database, and update alarm_schedule
-    async fn update_alarm(&mut self, hour: u8, minute: u8) {
+    async fn alarm_update(&mut self, hour: u8, minute: u8) {
         if let Ok(Some(alarm)) = ModelAlarm::get(&self.db).await {
             if let Some(current_time) = ModelTimezone::get(&self.db)
                 .await
@@ -154,27 +182,6 @@ impl WSSender {
     async fn too_close(&mut self) {
         self.send_error("Current time too close to alarm to edit")
             .await;
-    }
-
-    /// Delete all alarm in database, and update alarm_schedule
-    async fn delete(&mut self) {
-        if let Ok(Some(alarm)) = ModelAlarm::get(&self.db).await {
-            if let Some(current_time) = ModelTimezone::get(&self.db)
-                .await
-                .unwrap_or_default()
-                .to_time()
-            {
-                if Self::valid_change(current_time, alarm.hour, alarm.minute).is_ok() {
-                    if let Err(e) = ModelAlarm::delete(&self.db).await {
-                        tracing::error!("{e}");
-                    }
-                    self.sx.send(CronMessage::Reset).await.ok();
-                    self.send_status().await;
-                } else {
-                    self.too_close().await;
-                }
-            }
-        }
     }
 
     /// Force quite program, assumes running in an auto-restart container, or systemd, in order to start again immediately

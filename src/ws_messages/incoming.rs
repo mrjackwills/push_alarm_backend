@@ -14,6 +14,7 @@ pub enum ParsedMessage {
     AlarmAdd(HourMinute),
     AlarmDelete,
     AlarmUpdate(HourMinute),
+    AlarmDismiss,
     Restart,
     Status,
     TestRequest(TestRequest),
