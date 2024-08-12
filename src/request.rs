@@ -52,17 +52,20 @@ impl PushRequest {
             .build()?)
     }
 
-    #[cfg(not(test))]
+    #[cfg(not(debug_assertions))]
     /// The actual request via PushOver api
     async fn send_request(url: Url) -> Result<PostRequest, AppError> {
         let client = Self::get_client()?;
         Ok(client.post(url).send().await?.json::<PostRequest>().await?)
     }
 
-    #[cfg(test)]
+    #[cfg(debug_assertions)]
     #[allow(clippy::unused_async)]
     async fn send_request(_: Url) -> Result<PostRequest, AppError> {
+        use tracing::info;
+
         let _client = Self::get_client()?;
+        info!("sending request");
         Ok(PostRequest {
             status: 1,
             request: "request".to_owned(),
@@ -90,7 +93,7 @@ impl PushRequest {
                 params[2].1 = format!("Wake up, loop {index}");
             }
             Self::Test(message) => {
-                params[2].1 = message.to_owned();
+                message.clone_into(&mut params[2].1);
             }
         }
         params

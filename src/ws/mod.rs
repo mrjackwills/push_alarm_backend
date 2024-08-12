@@ -35,7 +35,7 @@ impl AutoClose {
         if let Some(handle) = self.0.as_ref() {
             handle.abort();
         };
-        let mut ws_sender = ws_sender.clone();
+        let ws_sender = ws_sender.clone();
         self.0 = Some(tokio::spawn(async move {
             tokio::time::sleep(AUTO_CLOSE_TIME).await;
             ws_sender.close().await;
@@ -44,7 +44,7 @@ impl AutoClose {
 }
 
 /// Handle each incoming ws message
-async fn incoming_ws_message(mut reader: WSReader, mut ws_sender: WSSender) {
+async fn incoming_ws_message(mut reader: WSReader, ws_sender: WSSender) {
     let mut auto_close = AutoClose::default();
     auto_close.init(&ws_sender);
     while let Ok(Some(message)) = reader.try_next().await {
@@ -85,7 +85,7 @@ pub async fn open_connection(
 
                 let (writer, reader) = socket.split();
 
-                let mut ws_sender = WSSender::new(
+                let ws_sender = WSSender::new(
                     &app_envs,
                     connection_details.get_connect_instant(),
                     &db,

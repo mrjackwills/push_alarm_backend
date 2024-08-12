@@ -13,19 +13,21 @@ use crate::{
     request::PushRequest,
 };
 
-const ONE_SECOND: u64 = 1000;
+const ONE_SEC: u64 = 1000;
 const FORTY_FIVE_SEC: Duration = std::time::Duration::from_secs(45);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CronMessage {
     Reset,
-    Alarm,
+    AlarmStart,
+    AlarmDismiss,
 }
 
 #[derive(Debug)]
 pub struct AlarmSchedule {
     app_env: AppEnv,
-    looper: Option<JoinHandle<()>>,
+    loop_alarm: Option<JoinHandle<()>>,
+    loop_msg: Option<JoinHandle<()>>,
     rx: Receiver<CronMessage>,
     sqlite: SqlitePool,
     sx: Sender<CronMessage>,
@@ -42,7 +44,8 @@ impl AlarmSchedule {
 
         let mut alarm_schedule = Self {
             app_env: app_env.clone(),
-            looper: None,
+            loop_alarm: None,
+            loop_msg: None,
             rx,
             sqlite,
             sx: sx.clone(),
@@ -60,7 +63,7 @@ impl AlarmSchedule {
         while let Some(x) = self.rx.recv().await {
             match x {
                 CronMessage::Reset => {
-                    if let Some(looper) = self.looper.as_ref() {
+                    if let Some(looper) = self.loop_msg.as_ref() {
                         looper.abort();
                     }
                     self.refresh_timezone().await;
@@ -69,11 +72,16 @@ impl AlarmSchedule {
                         println!("{e}");
                     }
                 }
-                CronMessage::Alarm => {
+                CronMessage::AlarmDismiss => {
+                    if let Some(looper) = self.loop_alarm.as_ref() {
+                        looper.abort();
+                    }
+                }
+                CronMessage::AlarmStart => {
                     let sqlite = self.sqlite.clone();
                     let app_envs = self.app_env.clone();
-                    tokio::spawn(async move {
-                        for i in 1..=8 {
+                    self.loop_alarm = Some(tokio::spawn(async move {
+                        for i in 1..=40 {
                             if let Err(e) =
                                 PushRequest::Alarm(i).make_request(&app_envs, &sqlite).await
                             {
@@ -81,7 +89,7 @@ impl AlarmSchedule {
                             }
                             tokio::time::sleep(FORTY_FIVE_SEC).await;
                         }
-                    });
+                    }));
                 }
             }
         }
@@ -91,7 +99,7 @@ impl AlarmSchedule {
         if let Some(alarm) = ModelAlarm::get(&self.sqlite).await? {
             let tz = self.time_zone.clone();
             let sx = self.sx.clone();
-            self.looper = Some(tokio::spawn(async move {
+            self.loop_msg = Some(tokio::spawn(async move {
                 Self::init_alarm_loop(alarm, tz, sx).await;
             }));
         }
@@ -117,11 +125,11 @@ impl AlarmSchedule {
                     && alarm.minute == current_time.minute()
                     && current_time.second() == 0
                 {
-                    sx.send(CronMessage::Alarm).await.ok();
+                    sx.send(CronMessage::AlarmStart).await.ok();
                 }
             }
-            let to_sleep = ONE_SECOND
-                .saturating_sub(u64::try_from(start.elapsed().as_millis()).unwrap_or(ONE_SECOND));
+            let to_sleep = ONE_SEC
+                .saturating_sub(u64::try_from(start.elapsed().as_millis()).unwrap_or(ONE_SEC));
             tokio::time::sleep(std::time::Duration::from_millis(to_sleep)).await;
         }
     }
