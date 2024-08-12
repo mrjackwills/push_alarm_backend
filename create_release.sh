@@ -191,21 +191,21 @@ check_cross() {
 }
 
 # Build for linux x86
-cargo_build_x86_linux() {
+cross_build_x86_linux() {
 	check_cross
 	echo -e "${YELLOW}cross build --target x86_64-unknown-linux-musl --release${RESET}"
 	cross build --target x86_64-unknown-linux-musl --release
 }
 
 # Build for linux arm64
-cargo_build_aarch64_linux() {
+cross_build_aarch64_linux() {
 	check_cross
 	echo -e "${YELLOW}cross build --target aarch64-unknown-linux-musl --release${RESET}"
 	cross build --target aarch64-unknown-linux-musl --release
 }
 
 # Build for linux armv6
-cargo_build_armv6_linux() {
+cross_build_armv6_linux() {
 	check_cross
 	echo -e "${YELLOW}cross build --target arm-unknown-linux-musleabihf --release${RESET}"
 	cross build --target arm-unknown-linux-musleabihf --release
@@ -213,12 +213,12 @@ cargo_build_armv6_linux() {
 
 # Build all releases that GitHub workflow would
 # This will download GB's of docker images
-cargo_build_all() {
-	cargo_build_armv6_linux
+cross_build_all() {
+	cross_build_armv6_linux
 	ask_continue
-	cargo_build_aarch64_linux
+	cross_build_aarch64_linux
 	ask_continue
-	cargo_build_x86_linux
+	cross_build_x86_linux
 	ask_continue
 }
 
@@ -257,7 +257,7 @@ release_flow() {
 	get_git_remote_url
 
 	cargo_test
-	cargo_build_all
+	cross_build_all
 
 	cd "${CWD}" || error_close "Can't find ${CWD}"
 	check_tag
@@ -277,6 +277,7 @@ release_flow() {
 
 	echo -e "\ncargo fmt"
 	cargo fmt
+	
 	echo -e "\n${PURPLE}cargo check${RESET}\n"
 	cargo check
 
@@ -294,6 +295,7 @@ release_flow() {
 
 	echo -e "${PURPLE}git merge --no-ff \"${RELEASE_BRANCH}\" -m \"chore: merge ${RELEASE_BRANCH} into main\"${RESET}"
 	git merge --no-ff "$RELEASE_BRANCH" -m "chore: merge ${RELEASE_BRANCH} into main"
+	
 	echo -e "\n${PURPLE}cargo check${RESET}\n"
 	cargo check
 
@@ -337,19 +339,19 @@ build_choice() {
 			exit
 			;;
 		1)
-			cargo_build_x86_linux
+			cross_build_x86_linux
 			exit
 			;;
 		2)
-			cargo_build_aarch64_linux
+			cross_build_aarch64_linux
 			exit
 			;;
 		3)
-			cargo_build_armv6_linux
+			cross_build_armv6_linux
 			exit
 			;;
 		4)
-			cargo_build_all
+			cross_build_all
 			exit
 			;;
 		esac
