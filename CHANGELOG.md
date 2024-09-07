@@ -1,10 +1,13 @@
+# <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.2.1'>v0.2.1</a>
+### 2024-09-07
+
 ### Chores
-+ .devcontainer updated, [f50a6438cb46abe38fb68948fc68781ecaf28104]
-+ dependencies updated, [7ea9363555900eb245ace827bf15a53f3d1dcffe]
++ .devcontainer updated, [f50a6438](https://github.com/mrjackwills/push_alarm_backend/commit/f50a6438cb46abe38fb68948fc68781ecaf28104)
++ dependencies updated, [7ea93635](https://github.com/mrjackwills/push_alarm_backend/commit/7ea9363555900eb245ace827bf15a53f3d1dcffe)
 
 ### Fixes
-+ use `fs::exists`, [919391d78c3482a1b8da4d05d58f4597c22f17f7]
-+ switch lint from `allow(x)` to `expect(x)`, [af460c96e3317a1bfe8eaf53072aebc41419ff8c]
++ use `fs::exists`, [919391d7](https://github.com/mrjackwills/push_alarm_backend/commit/919391d78c3482a1b8da4d05d58f4597c22f17f7)
++ switch lint from `allow(x)` to `expect(x)`, [af460c96](https://github.com/mrjackwills/push_alarm_backend/commit/af460c96e3317a1bfe8eaf53072aebc41419ff8c)
 
 # <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.2.0'>v0.2.0</a>
 ### 2024-08-12
