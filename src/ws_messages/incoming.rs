@@ -72,36 +72,12 @@ pub fn to_struct(input: &str) -> Option<MessageValues> {
         error_serialized.map_or(None, |data| Some(MessageValues::Invalid(data)))
     }
 }
-// pub fn to_struct(input: &str) -> Option<MessageValues> {
-//     let user_serialized = serde_json::from_str::<StructuredMessage>(input);
-//     if let Ok(data) = user_serialized {
-//         if let Some(data) = data.error {
-//             return Some(MessageValues::Invalid(data));
-//         }
-//         if let Some(data) = data.data {
-// 			return Some(MessageValues::Valid((data, data.unique)));
-//         }
-//         None
-//     } else {
-//         let error_serialized = serde_json::from_str::<ErrorData>(input);
-//         error_serialized.map_or_else(
-//             |_| {
-//                 debug!("not a known input message");
-//                 None
-//             },
-//             |data| {
-//                 debug!("Matched error_serialized data");
-//                 Some(MessageValues::Invalid(data))
-//             },
-//         )
-//     }
-// }
 
 /// message_incoming
 ///
 /// cargo watch -q -c -w src/ -x 'test message_incoming -- --test-threads=1 --nocapture'
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::too_many_lines)]
+#[expect(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

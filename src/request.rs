@@ -60,7 +60,7 @@ impl PushRequest {
     }
 
     #[cfg(debug_assertions)]
-    #[allow(clippy::unused_async)]
+    #[expect(clippy::unused_async)]
     async fn send_request(_: Url) -> Result<PostRequest, AppError> {
         use tracing::info;
 
@@ -127,7 +127,7 @@ impl PushRequest {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[expect(clippy::unwrap_used)]
 mod tests {
 
     use super::*;
