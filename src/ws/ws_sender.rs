@@ -259,7 +259,7 @@ impl WSSender {
 /// ws_sender
 ///
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::too_many_lines)]
+#[expect(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
