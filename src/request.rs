@@ -4,7 +4,7 @@ use sqlx::SqlitePool;
 use std::net::IpAddr;
 use url::Url;
 
-use crate::{app_env::AppEnv, app_error::AppError, db::ModelRequest};
+use crate::{app_env::AppEnv, app_error::AppError, db::ModelRequest, C};
 
 /// Pushover api url
 const URL: &str = "https://api.pushover.net/1/messages.json";
@@ -64,11 +64,13 @@ impl PushRequest {
     async fn send_request(_: Url) -> Result<PostRequest, AppError> {
         use tracing::info;
 
+        use crate::S;
+
         let _client = Self::get_client()?;
         info!("sending request");
         Ok(PostRequest {
             status: 1,
-            request: "request".to_owned(),
+            request: S!("request"),
         })
     }
 
@@ -82,8 +84,8 @@ impl PushRequest {
     /// Generate the params, aka the message
     fn gen_params<'a>(&self, app_envs: &AppEnv) -> Params<'a> {
         let mut params = [
-            ("token", app_envs.token_app.clone()),
-            ("user", app_envs.token_user.clone()),
+            ("token", C!(app_envs.token_app)),
+            ("user", C!(app_envs.token_user)),
             ("message", String::new()),
             ("priority", self.get_priority().to_owned()),
         ];
@@ -131,7 +133,10 @@ impl PushRequest {
 mod tests {
 
     use super::*;
-    use crate::tests::{test_cleanup, test_setup};
+    use crate::{
+        tests::{test_cleanup, test_setup},
+        S,
+    };
 
     #[tokio::test]
     async fn test_request_generate_params() {
@@ -140,26 +145,26 @@ mod tests {
         let push_request = PushRequest::Alarm(0);
         let result = push_request.gen_params(&app_envs);
 
-        assert_eq!(result[0], ("token", "test_token_app".to_owned()));
-        assert_eq!(result[2], ("message", "Wake up, loop 0".to_owned()));
-        assert_eq!(result[1], ("user", "test_token_user".to_owned()));
-        assert_eq!(result[3], ("priority", "1".to_owned()));
+        assert_eq!(result[0], ("token", S!("test_token_app")));
+        assert_eq!(result[2], ("message", S!("Wake up, loop 0")));
+        assert_eq!(result[1], ("user", S!("test_token_user")));
+        assert_eq!(result[3], ("priority", S!("1")));
 
         let push_request = PushRequest::Alarm(8);
         let result = push_request.gen_params(&app_envs);
 
-        assert_eq!(result[0], ("token", "test_token_app".to_owned()));
-        assert_eq!(result[2], ("message", "Wake up, loop 8".to_owned()));
-        assert_eq!(result[1], ("user", "test_token_user".to_owned()));
-        assert_eq!(result[3], ("priority", "1".to_owned()));
+        assert_eq!(result[0], ("token", S!("test_token_app")));
+        assert_eq!(result[2], ("message", S!("Wake up, loop 8")));
+        assert_eq!(result[1], ("user", S!("test_token_user")));
+        assert_eq!(result[3], ("priority", S!("1")));
 
-        let push_request = PushRequest::Test("test message".to_owned());
+        let push_request = PushRequest::Test(S!("test message"));
         let result = push_request.gen_params(&app_envs);
 
-        assert_eq!(result[0], ("token", "test_token_app".to_owned()));
-        assert_eq!(result[2], ("message", "test message".to_owned()));
-        assert_eq!(result[1], ("user", "test_token_user".to_owned()));
-        assert_eq!(result[3], ("priority", "0".to_owned()));
+        assert_eq!(result[0], ("token", S!("test_token_app")));
+        assert_eq!(result[2], ("message", S!("test message")));
+        assert_eq!(result[1], ("user", S!("test_token_user")));
+        assert_eq!(result[3], ("priority", S!("0")));
 
         test_cleanup(uuid, Some(db)).await;
     }

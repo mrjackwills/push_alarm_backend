@@ -11,6 +11,7 @@ use crate::{
     app_error::AppError,
     db::{ModelAlarm, ModelTimezone},
     request::PushRequest,
+    C,
 };
 
 const ONE_SEC: u64 = 1000;
@@ -43,12 +44,12 @@ impl AlarmSchedule {
         let (sx, rx) = tokio::sync::mpsc::channel(128);
 
         let mut alarm_schedule = Self {
-            app_env: app_env.clone(),
+            app_env: C!(app_env),
             loop_alarm: None,
             loop_msg: None,
             rx,
             sqlite,
-            sx: sx.clone(),
+            sx: C!(sx),
             time_zone,
         };
         alarm_schedule.generate_alarm_loop().await?;
@@ -78,8 +79,8 @@ impl AlarmSchedule {
                     }
                 }
                 CronMessage::AlarmStart => {
-                    let sqlite = self.sqlite.clone();
-                    let app_envs = self.app_env.clone();
+                    let sqlite = C!(self.sqlite);
+                    let app_envs = C!(self.app_env);
                     self.loop_alarm = Some(tokio::spawn(async move {
                         for i in 1..=40 {
                             if let Err(e) =
@@ -97,8 +98,8 @@ impl AlarmSchedule {
 
     async fn generate_alarm_loop(&mut self) -> Result<(), AppError> {
         if let Some(alarm) = ModelAlarm::get(&self.sqlite).await? {
-            let tz = self.time_zone.clone();
-            let sx = self.sx.clone();
+            let tz = C!(self.time_zone);
+            let sx = C!(self.sx);
             self.loop_msg = Some(tokio::spawn(async move {
                 Self::init_alarm_loop(alarm, tz, sx).await;
             }));

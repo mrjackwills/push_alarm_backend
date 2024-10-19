@@ -13,6 +13,7 @@ use crate::sysinfo::SysInfo;
 use crate::ws_messages::{
     MessageValues, ParsedMessage, PiStatus, Response, StructuredResponse, TestRequest,
 };
+use crate::C;
 use crate::{
     app_env::AppEnv,
     db::{ModelAlarm, ModelTimezone},
@@ -42,9 +43,9 @@ impl WSSender {
         writer: Arc<Mutex<WSWriter>>,
     ) -> Self {
         Self {
-            app_envs: app_envs.clone(),
+            app_envs: C!(app_envs),
             connected_instant,
-            db: db.clone(),
+            db: C!(db),
             sx,
             writer,
             unique: None,
@@ -227,12 +228,8 @@ impl WSSender {
 
     /// Send a unique error message
     pub async fn send_error(&self, message: &str) {
-        self.send_ws_response(
-            Response::Error(message.to_owned()),
-            None,
-            self.unique.clone(),
-        )
-        .await;
+        self.send_ws_response(Response::Error(message.to_owned()), None, C!(self.unique))
+            .await;
     }
 
     /// Generate, and send, pi information

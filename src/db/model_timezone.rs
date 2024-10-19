@@ -4,7 +4,7 @@ use std::fmt;
 use time::{OffsetDateTime, Time, UtcOffset};
 use time_tz::{timezones, Offset, TimeZone};
 
-use crate::{app_env::AppEnv, app_error::AppError};
+use crate::{app_env::AppEnv, app_error::AppError, S};
 
 #[derive(sqlx::FromRow, Debug, Clone, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ModelTimezone {
@@ -26,28 +26,12 @@ impl Default for ModelTimezone {
     fn default() -> Self {
         Self {
             timezone_id: 1,
-            zone_name: String::from("Etc/UTC"),
+            zone_name: S!("Etc/UTC"),
         }
     }
 }
 
 impl ModelTimezone {
-    // pub fn get_offset(&self) -> UtcOffset {
-    //     timezones::get_by_name(&self.zone_name).map_or(UtcOffset::UTC, |tz| {
-    //         tz.get_offset_utc(&time::OffsetDateTime::now_utc()).to_utc()
-    //     })
-    // }
-    // // Get the current time as OffsetDateTime with the ModelTimezone zone accounted for
-    // pub fn now_with_offset(&self) -> OffsetDateTime {
-    // 	OffsetDateTime::now_utc().to_offset(self.get_offset())
-    // }
-
-    //  /// Get the current timezone in HMS
-    //  pub fn to_time(&self) -> Option<Time> {
-    // 	let now = self.now_with_offset();
-    // 	Time::from_hms(now.hour(), now.minute(), now.second()).ok()
-    // }
-
     pub fn get_offset(&self) -> UtcOffset {
         timezones::get_by_name(&self.zone_name).map_or(UtcOffset::UTC, |tz| {
             tz.get_offset_utc(&OffsetDateTime::now_utc()).to_utc()
