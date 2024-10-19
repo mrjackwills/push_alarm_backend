@@ -1,11 +1,11 @@
-### 2024-09-07
+### 2024-10-19
 
 ### Chores
-+ .devcontainer updated, [f50a6438cb46abe38fb68948fc68781ecaf28104]
-+ dependencies updated, [7ea9363555900eb245ace827bf15a53f3d1dcffe]
++ dependencies updated, [a3025353acfa2368e8a1820442c413e8b12b3a56]
++ .devcontainer updated, [22c8a2be273cd71217d8454a036bbfc650d0d4c0]
++ run.sh & download.sh updated, [cf8dab5177114e02bf54ed716fcc5673a1c2da1e]
 
-### Fixes
-+ use `fs::exists`, [919391d78c3482a1b8da4d05d58f4597c22f17f7]
-+ switch lint from `allow(x)` to `expect(x)`, [af460c96e3317a1bfe8eaf53072aebc41419ff8c]
+### Features
++ S! and C! macros, [b41bb4a67bcc04b18a4e673d3e4dfc0f4f05743b]
 
 see <a href='https://github.com/mrjackwills/push_alarm_backend/blob/main/CHANGELOG.md'>CHANGELOG.md</a> for more details
