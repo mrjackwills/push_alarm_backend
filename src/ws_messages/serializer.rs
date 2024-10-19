@@ -71,6 +71,8 @@ mod tests {
     use serde::de::value::{Error as ValueError, StringDeserializer, U8Deserializer};
     use serde::de::IntoDeserializer;
 
+    use crate::S;
+
     use super::*;
 
     #[test]
@@ -108,13 +110,13 @@ mod tests {
     #[test]
     fn incoming_serializer_timezone_err() {
         let deserializer: StringDeserializer<ValueError> =
-            "America/NEwYork".to_owned().into_deserializer();
+            S!("America/NEwYork").into_deserializer();
         let result = IncomingSerializer::timezone(deserializer);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "unknown timezone");
 
         let deserializer: StringDeserializer<ValueError> =
-            "America/New_York".to_lowercase().into_deserializer();
+            S!("America/New_York").to_lowercase().into_deserializer();
         let result = IncomingSerializer::timezone(deserializer);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "unknown timezone");
@@ -123,7 +125,7 @@ mod tests {
     #[test]
     fn incoming_serializer_timezone_ok() {
         let deserializer: StringDeserializer<ValueError> =
-            "America/New_York".to_owned().into_deserializer();
+            S!("America/New_York").into_deserializer();
         let result = IncomingSerializer::timezone(deserializer);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "America/New_York");

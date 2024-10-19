@@ -15,6 +15,25 @@ use db::init_db;
 use word_art::Intro;
 use ws::open_connection;
 
+/// Simple macro to create a new String, or convert from a &str to  a String - basically just gets rid of String::from() / .to_owned() etc
+#[macro_export]
+macro_rules! S {
+    () => {
+        String::new()
+    };
+    ($s:expr) => {
+        String::from($s)
+    };
+}
+
+/// Simple macro to call `.clone()` on whatever is passed in
+#[macro_export]
+macro_rules! C {
+    ($i:expr) => {
+        $i.clone()
+    };
+}
+
 fn close_signal() {
     tokio::spawn(async move {
         tokio::signal::ctrl_c().await.ok();
@@ -36,7 +55,7 @@ async fn main() -> Result<(), AppError> {
 
     let sqlite = init_db(&app_envs).await?;
     close_signal();
-    let sx = AlarmSchedule::init(sqlite.clone(), app_envs.clone()).await?;
+    let sx = AlarmSchedule::init(C!(sqlite), C!(app_envs)).await?;
     open_connection(app_envs, sqlite, sx).await?;
     Ok(())
 }
@@ -72,12 +91,12 @@ mod tests {
             log_level: tracing::Level::INFO,
             start_time: SystemTime::now(),
             timezone: EnvTimeZone::new("Europe/London"),
-            token_app: String::from("test_token_app"),
-            token_user: "test_token_user".to_owned(),
-            ws_address: "ws_address".to_owned(),
-            ws_apikey: "ws_apikey".to_owned(),
-            ws_password: "ws_password".to_owned(),
-            ws_token_address: "ws_token_address".to_owned(),
+            token_app: S!("test_token_app"),
+            token_user: S!("test_token_user"),
+            ws_address: S!("ws_address"),
+            ws_apikey: S!("ws_apikey"),
+            ws_password: S!("ws_password"),
+            ws_token_address: S!("ws_token_address"),
         }
     }
 
