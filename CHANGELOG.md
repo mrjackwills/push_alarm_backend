@@ -1,10 +1,13 @@
+# <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.2.2'>v0.2.2</a>
+### 2024-10-19
+
 ### Chores
-+ dependencies updated, [a3025353acfa2368e8a1820442c413e8b12b3a56]
-+ .devcontainer updated, [22c8a2be273cd71217d8454a036bbfc650d0d4c0]
-+ run.sh & download.sh updated, [cf8dab5177114e02bf54ed716fcc5673a1c2da1e]
++ dependencies updated, [a3025353](https://github.com/mrjackwills/push_alarm_backend/commit/a3025353acfa2368e8a1820442c413e8b12b3a56)
++ .devcontainer updated, [22c8a2be](https://github.com/mrjackwills/push_alarm_backend/commit/22c8a2be273cd71217d8454a036bbfc650d0d4c0)
++ run.sh & download.sh updated, [cf8dab51](https://github.com/mrjackwills/push_alarm_backend/commit/cf8dab5177114e02bf54ed716fcc5673a1c2da1e)
 
 ### Features
-+ S! and C! macros, [b41bb4a67bcc04b18a4e673d3e4dfc0f4f05743b]
++ S! and C! macros, [b41bb4a6](https://github.com/mrjackwills/push_alarm_backend/commit/b41bb4a67bcc04b18a4e673d3e4dfc0f4f05743b)
 
 # <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.2.1'>v0.2.1</a>
 ### 2024-09-07
