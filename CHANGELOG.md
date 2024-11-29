@@ -1,3 +1,9 @@
+### Chores
++ dependencies updated, [800ea3de5fe70320baeaaa262834eb356572cb4b]
+
+### Features
++ spawn main fn, [7d4312ad0e331dc64f33221fdbebd6f743be8454]
+
 # <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.2.2'>v0.2.2</a>
 ### 2024-10-19
 
