@@ -1,7 +1,7 @@
 
 services:
   push_alarm:
-    image: push_alarm:0.2.2
+    image: push_alarm:0.2.3
     build:
       context: .
       dockerfile: Dockerfile
