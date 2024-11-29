@@ -47,8 +47,7 @@ fn setup_tracing(app_envs: &AppEnv) {
         .init();
 }
 
-#[tokio::main]
-async fn main() -> Result<(), AppError> {
+async fn start() -> Result<(), AppError> {
     let app_envs = AppEnv::get();
     setup_tracing(&app_envs);
     Intro::new(&app_envs).show();
@@ -57,6 +56,11 @@ async fn main() -> Result<(), AppError> {
     close_signal();
     let sx = AlarmSchedule::init(C!(sqlite), C!(app_envs)).await?;
     open_connection(app_envs, sqlite, sx).await?;
+    Ok(())
+}
+#[tokio::main]
+async fn main() -> Result<(), AppError> {
+    tokio::spawn(start()).await.ok();
     Ok(())
 }
 
