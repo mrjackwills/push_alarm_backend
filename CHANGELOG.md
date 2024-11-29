@@ -1,9 +1,12 @@
+# <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.2.3'>v0.2.3</a>
+### 2024-11-29
+
 ### Chores
-+ dependencies updated, [800ea3de5fe70320baeaaa262834eb356572cb4b]
++ dependencies updated, [800ea3de](https://github.com/mrjackwills/push_alarm_backend/commit/800ea3de5fe70320baeaaa262834eb356572cb4b)
 
 ### Features
-+ spawn main fn, [7d4312ad0e331dc64f33221fdbebd6f743be8454]
-+ use mimalloc, [ae589b69f7a194f14fcf1cb1ccfb4170cc705563]
++ spawn main fn, [7d4312ad](https://github.com/mrjackwills/push_alarm_backend/commit/7d4312ad0e331dc64f33221fdbebd6f743be8454)
++ use mimalloc, [ae589b69](https://github.com/mrjackwills/push_alarm_backend/commit/ae589b69f7a194f14fcf1cb1ccfb4170cc705563)
 
 # <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.2.2'>v0.2.2</a>
 ### 2024-10-19
