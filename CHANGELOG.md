@@ -3,6 +3,7 @@
 
 ### Features
 + spawn main fn, [7d4312ad0e331dc64f33221fdbebd6f743be8454]
++ use mimalloc, [ae589b69f7a194f14fcf1cb1ccfb4170cc705563]
 
 # <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.2.2'>v0.2.2</a>
 ### 2024-10-19
