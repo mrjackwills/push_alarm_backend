@@ -12,8 +12,12 @@ use alarm_schedule::AlarmSchedule;
 use app_env::AppEnv;
 use app_error::AppError;
 use db::init_db;
+use mimalloc::MiMalloc;
 use word_art::Intro;
 use ws::open_connection;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 /// Simple macro to create a new String, or convert from a &str to  a String - basically just gets rid of String::from() / .to_owned() etc
 #[macro_export]
@@ -47,8 +51,7 @@ fn setup_tracing(app_envs: &AppEnv) {
         .init();
 }
 
-#[tokio::main]
-async fn main() -> Result<(), AppError> {
+async fn start() -> Result<(), AppError> {
     let app_envs = AppEnv::get();
     setup_tracing(&app_envs);
     Intro::new(&app_envs).show();
@@ -57,6 +60,11 @@ async fn main() -> Result<(), AppError> {
     close_signal();
     let sx = AlarmSchedule::init(C!(sqlite), C!(app_envs)).await?;
     open_connection(app_envs, sqlite, sx).await?;
+    Ok(())
+}
+#[tokio::main]
+async fn main() -> Result<(), AppError> {
+    tokio::spawn(start()).await.ok();
     Ok(())
 }
 
