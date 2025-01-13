@@ -1,10 +1,7 @@
-### 2024-11-29
+### 2025-01-13
 
 ### Chores
-+ dependencies updated, [800ea3de5fe70320baeaaa262834eb356572cb4b]
-
-### Features
-+ spawn main fn, [7d4312ad0e331dc64f33221fdbebd6f743be8454]
-+ use mimalloc, [ae589b69f7a194f14fcf1cb1ccfb4170cc705563]
++ dependencies updated, [bde934044e732d7cc00870c72d4835989d5c7aae]
++ Rust 1.84 linting, [118dbd360ee5b96a2cb6542479f44b5beefe173b]
 
 see <a href='https://github.com/mrjackwills/push_alarm_backend/blob/main/CHANGELOG.md'>CHANGELOG.md</a> for more details
