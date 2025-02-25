@@ -6,8 +6,6 @@ pub enum AppError {
     DbNameInvalid(String),
     #[error("missing env: '{0}'")]
     MissingEnv(String),
-    #[error("Time offset error")]
-    Offset(#[from] time::error::ComponentRange),
     #[error("Reqwest Error")]
     Reqwest(#[from] reqwest::Error),
     #[error("Internal Database Error: {0}")]
