@@ -2,9 +2,9 @@ use serde::Deserialize;
 use sqlx::SqlitePool;
 use std::fmt;
 use time::{OffsetDateTime, Time, UtcOffset};
-use time_tz::{timezones, Offset, TimeZone};
+use time_tz::{Offset, TimeZone, timezones};
 
-use crate::{app_env::AppEnv, app_error::AppError, S};
+use crate::{S, app_env::AppEnv, app_error::AppError};
 
 #[derive(sqlx::FromRow, Debug, Clone, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ModelTimezone {

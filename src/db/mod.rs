@@ -8,7 +8,7 @@ pub use model_alarm::ModelAlarm;
 pub use model_request::ModelRequest;
 pub use model_timezone::ModelTimezone;
 
-use sqlx::{sqlite::SqliteJournalMode, ConnectOptions, SqlitePool};
+use sqlx::{ConnectOptions, SqlitePool, sqlite::SqliteJournalMode};
 use tracing::error;
 
 use crate::app_env::AppEnv;

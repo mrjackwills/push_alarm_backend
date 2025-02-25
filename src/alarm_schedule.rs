@@ -7,11 +7,11 @@ use tokio::{
 };
 
 use crate::{
+    C,
     app_env::AppEnv,
     app_error::AppError,
     db::{ModelAlarm, ModelTimezone},
     request::PushRequest,
-    C,
 };
 
 const ONE_SEC: u64 = 1000;
