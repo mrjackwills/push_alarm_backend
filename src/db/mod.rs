@@ -8,7 +8,7 @@ pub use model_alarm::ModelAlarm;
 pub use model_request::ModelRequest;
 pub use model_timezone::ModelTimezone;
 
-use sqlx::{sqlite::SqliteJournalMode, ConnectOptions, SqlitePool};
+use sqlx::{ConnectOptions, SqlitePool, sqlite::SqliteJournalMode};
 use tracing::error;
 
 use crate::app_env::AppEnv;
@@ -99,15 +99,13 @@ pub async fn init_db(app_envs: &AppEnv) -> Result<SqlitePool, sqlx::Error> {
 #[cfg(test)]
 #[expect(clippy::unwrap_used)]
 mod tests {
+    use jiff::tz::TimeZone;
     use uuid::Uuid;
 
     use std::fs;
 
     use super::*;
-    use crate::{
-        app_env::EnvTimeZone,
-        tests::{gen_app_envs, test_cleanup},
-    };
+    use crate::tests::{gen_app_envs, test_cleanup};
 
     #[tokio::test]
     async fn sql_mod_exists_created() {
@@ -146,7 +144,7 @@ mod tests {
     async fn sql_mod_db_created_with_timezone() {
         let uuid = uuid::Uuid::new_v4();
         let mut args = gen_app_envs(uuid);
-        args.timezone = EnvTimeZone::new("America/New_York");
+        args.timezone = TimeZone::get("America/New_York").unwrap();
         init_db(&args).await.unwrap();
         let db = sqlx::pool::PoolOptions::<sqlx::Sqlite>::new()
             .max_connections(1)

@@ -7,11 +7,11 @@ use tokio::{
 };
 
 use crate::{
+    C,
     app_env::AppEnv,
     app_error::AppError,
     db::{ModelAlarm, ModelTimezone},
     request::PushRequest,
-    C,
 };
 
 const ONE_SEC: u64 = 1000;
@@ -121,13 +121,12 @@ impl AlarmSchedule {
     async fn init_alarm_loop(alarm: ModelAlarm, time_zone: ModelTimezone, sx: Sender<CronMessage>) {
         loop {
             let start = std::time::Instant::now();
-            if let Some(current_time) = time_zone.to_time() {
-                if alarm.hour == current_time.hour()
-                    && alarm.minute == current_time.minute()
-                    && current_time.second() == 0
-                {
-                    sx.send(CronMessage::AlarmStart).await.ok();
-                }
+            let current_time = time_zone.to_time();
+            if alarm.hour == current_time.hour()
+                && alarm.minute == current_time.minute()
+                && current_time.second() == 0
+            {
+                sx.send(CronMessage::AlarmStart).await.ok();
             }
             let to_sleep = ONE_SEC
                 .saturating_sub(u64::try_from(start.elapsed().as_millis()).unwrap_or(ONE_SEC));

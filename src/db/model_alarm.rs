@@ -8,8 +8,8 @@ use crate::app_error::AppError;
 pub struct ModelAlarm {
     #[serde(skip_serializing)]
     pub alarm_id: i64,
-    pub hour: u8,
-    pub minute: u8,
+    pub hour: i8,
+    pub minute: i8,
 }
 
 impl fmt::Display for ModelAlarm {
@@ -92,7 +92,10 @@ mod tests {
         let result = ModelAlarm::add(&db, data).await;
         assert!(result.is_err());
 
-        assert_eq!(result.unwrap_err().to_string(), "Internal Database Error: error returned from database: (code: 1811) only one alarm allowed");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Internal Database Error: error returned from database: (code: 1811) only one alarm allowed"
+        );
 
         test_cleanup(uuid, Some(db)).await;
     }

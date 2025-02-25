@@ -4,18 +4,18 @@ mod connection_details;
 use connect::ws_upgrade;
 use connection_details::ConnectionDetails;
 use futures_util::{
+    StreamExt, TryStreamExt,
     lock::Mutex,
     stream::{SplitSink, SplitStream},
-    StreamExt, TryStreamExt,
 };
 use sqlx::SqlitePool;
 use std::{sync::Arc, time::Duration};
 use tokio::{net::TcpStream, sync::mpsc::Sender, task::JoinHandle};
-use tokio_tungstenite::{self, tungstenite::Message, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{self, MaybeTlsStream, WebSocketStream, tungstenite::Message};
 use tracing::{error, info};
 
 use crate::{
-    alarm_schedule::CronMessage, app_env::AppEnv, app_error::AppError, ws::ws_sender::WSSender, C,
+    C, alarm_schedule::CronMessage, app_env::AppEnv, app_error::AppError, ws::ws_sender::WSSender,
 };
 
 type WsStream = WebSocketStream<MaybeTlsStream<TcpStream>>;

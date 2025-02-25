@@ -1,19 +1,19 @@
-use futures_util::lock::Mutex;
 use futures_util::SinkExt;
+use futures_util::lock::Mutex;
+use jiff::civil::Time;
+use jiff::tz::TimeZone;
 use sqlx::SqlitePool;
 use std::{process, sync::Arc, time::Instant};
-use time::Time;
-use time_tz::timezones;
 use tokio::sync::mpsc::Sender;
 use tracing::{error, trace};
 
+use crate::C;
 use crate::alarm_schedule::CronMessage;
 use crate::request::PushRequest;
 use crate::sysinfo::SysInfo;
 use crate::ws_messages::{
     MessageValues, ParsedMessage, PiStatus, Response, StructuredResponse, TestRequest,
 };
-use crate::C;
 use crate::{
     app_env::AppEnv,
     db::{ModelAlarm, ModelTimezone},
@@ -91,7 +91,7 @@ impl WSSender {
 
     // TODO check this when changing timezone? Use current time + current alarm (if set)
     /// Validate that an alarm can be edited, need to be more than six hour difference
-    fn valid_change(current_time: Time, alarm_hour: u8, alarm_minute: u8) -> Result<(), ()> {
+    fn valid_change(current_time: Time, alarm_hour: i8, alarm_minute: i8) -> Result<(), ()> {
         let current_as_sec =
             i64::from(current_time.hour()) * 60 * 60 + i64::from(current_time.minute()) * 60;
 
@@ -141,11 +141,8 @@ impl WSSender {
     /// Delete all alarm in database, and update alarm_schedule
     async fn alarm_delete(&self) {
         if let Ok(Some(alarm)) = ModelAlarm::get(&self.db).await {
-            if let Some(current_time) = ModelTimezone::get(&self.db)
-                .await
-                .unwrap_or_default()
-                .to_time()
-            {
+            if let Some(current_time) = ModelTimezone::get(&self.db).await {
+                let current_time = current_time.to_time();
                 if Self::valid_change(current_time, alarm.hour, alarm.minute).is_ok() {
                     if let Err(e) = ModelAlarm::delete(&self.db).await {
                         tracing::error!("{e}");
@@ -162,11 +159,8 @@ impl WSSender {
     /// Update the alarm in the database, and update alarm_schedule
     async fn alarm_update(&self, hour: u8, minute: u8) {
         if let Ok(Some(alarm)) = ModelAlarm::get(&self.db).await {
-            if let Some(current_time) = ModelTimezone::get(&self.db)
-                .await
-                .unwrap_or_default()
-                .to_time()
-            {
+            if let Some(current_time) = ModelTimezone::get(&self.db).await {
+                let current_time = current_time.to_time();
                 if Self::valid_change(current_time, alarm.hour, alarm.minute).is_ok() {
                     if let Err(e) = ModelAlarm::update(&self.db, (hour, minute)).await {
                         tracing::error!("{e}");
@@ -194,7 +188,7 @@ impl WSSender {
     /// Change the timezone in database to new given database,
     /// also update timezone in alarm scheduler
     async fn time_zone(&self, zone: String) {
-        if timezones::get_by_name(&zone).is_some() {
+        if TimeZone::get(&zone).is_ok() {
             ModelTimezone::update(&self.db, &zone).await.ok();
             self.sx.send(CronMessage::Reset).await.ok();
             self.send_status().await;
@@ -256,15 +250,14 @@ impl WSSender {
 /// ws_sender
 ///
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_ws_sender_valid_change() {
-        let test = |alarm: (u8, u8), current_time: (u8, u8), is_ok: bool| {
+        let test = |alarm: (i8, i8), current_time: (i8, i8), is_ok: bool| {
             let result = WSSender::valid_change(
-                Time::from_hms(current_time.0, current_time.1, 0).unwrap(),
+                jiff::civil::time(current_time.0, current_time.1, 0, 0),
                 alarm.0,
                 alarm.1,
             );

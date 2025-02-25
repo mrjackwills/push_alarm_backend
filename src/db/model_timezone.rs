@@ -1,10 +1,9 @@
+use jiff::{Zoned, civil::Time};
 use serde::Deserialize;
 use sqlx::SqlitePool;
 use std::fmt;
-use time::{OffsetDateTime, Time, UtcOffset};
-use time_tz::{timezones, Offset, TimeZone};
 
-use crate::{app_env::AppEnv, app_error::AppError, S};
+use crate::{S, app_env::AppEnv, app_error::AppError};
 
 #[derive(sqlx::FromRow, Debug, Clone, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ModelTimezone {
@@ -26,28 +25,22 @@ impl Default for ModelTimezone {
     fn default() -> Self {
         Self {
             timezone_id: 1,
-            zone_name: S!("Etc/UTC"),
+            zone_name: S!("UTC"),
         }
     }
 }
 
 impl ModelTimezone {
-    pub fn get_offset(&self) -> UtcOffset {
-        timezones::get_by_name(&self.zone_name).map_or(UtcOffset::UTC, |tz| {
-            tz.get_offset_utc(&OffsetDateTime::now_utc()).to_utc()
-        })
+    // Get the current time as OffsetDateTime with the ModelTimezone zone accounted for
+    pub fn now_with_offset(&self) -> jiff::Zoned {
+        jiff::Timestamp::now()
+            .in_tz(&self.zone_name)
+            .unwrap_or_else(|_| Zoned::now())
     }
 
     /// Get the current timezone in HMS
-    pub fn to_time(&self) -> Option<Time> {
-        let offset = self.get_offset();
-        let now_as_utc_offset = OffsetDateTime::now_utc().to_offset(offset);
-        Time::from_hms(
-            now_as_utc_offset.hour(),
-            now_as_utc_offset.minute(),
-            now_as_utc_offset.second(),
-        )
-        .ok()
+    pub fn to_time(&self) -> Time {
+        self.now_with_offset().time()
     }
 
     pub async fn get(db: &SqlitePool) -> Option<Self> {
@@ -59,7 +52,7 @@ impl ModelTimezone {
     pub async fn insert(db: &SqlitePool, app_envs: &AppEnv) -> Result<Self, AppError> {
         let sql = "INSERT INTO timezone (zone_name) VALUES($1) RETURNING timezone_id, zone_name";
         let query = sqlx::query_as::<_, Self>(sql)
-            .bind(app_envs.timezone.to_string())
+            .bind(app_envs.timezone.iana_name().unwrap_or_default())
             .fetch_one(db)
             .await?;
         Ok(query)
@@ -79,10 +72,10 @@ impl ModelTimezone {
 #[expect(clippy::unwrap_used)]
 mod tests {
     use crate::{
-        app_env::EnvTimeZone,
         db::{create_tables, file_exists, get_db},
         tests::{gen_app_envs, test_cleanup, test_setup},
     };
+    use jiff::tz::TimeZone;
     use uuid::Uuid;
 
     use super::*;
@@ -92,7 +85,7 @@ mod tests {
         let uuid = Uuid::new_v4();
 
         let mut app_envs = gen_app_envs(uuid);
-        app_envs.timezone = EnvTimeZone::new("");
+        app_envs.timezone = TimeZone::UTC;
 
         file_exists(&app_envs.location_sqlite);
         let db = get_db(&app_envs).await.unwrap();
@@ -109,7 +102,7 @@ mod tests {
         let uuid = Uuid::new_v4();
 
         let mut app_envs = gen_app_envs(uuid);
-        app_envs.timezone = EnvTimeZone::new("America/New_York");
+        app_envs.timezone = TimeZone::get("America/New_York").unwrap();
 
         file_exists(&app_envs.location_sqlite);
         let db = get_db(&app_envs).await.unwrap();

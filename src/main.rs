@@ -73,13 +73,11 @@ async fn main() -> Result<(), AppError> {
 mod tests {
     use std::{path::PathBuf, time::SystemTime};
 
+    use jiff::tz::TimeZone;
     use sqlx::SqlitePool;
     use uuid::Uuid;
 
-    use crate::{
-        app_env::{AppEnv, EnvTimeZone},
-        db::init_db,
-    };
+    use crate::{app_env::AppEnv, db::init_db};
     /// Close database connection, and delete all test files
     pub async fn test_cleanup(uuid: Uuid, db: Option<SqlitePool>) {
         if let Some(db) = db {
@@ -98,7 +96,7 @@ mod tests {
             location_sqlite: format!("/dev/shm/{uuid}.db"),
             log_level: tracing::Level::INFO,
             start_time: SystemTime::now(),
-            timezone: EnvTimeZone::new("Europe/London"),
+            timezone: TimeZone::get("Europe/London").unwrap(),
             token_app: S!("test_token_app"),
             token_user: S!("test_token_user"),
             ws_address: S!("ws_address"),
