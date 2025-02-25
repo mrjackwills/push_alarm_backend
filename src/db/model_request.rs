@@ -1,3 +1,4 @@
+use jiff::{SpanRound, ToSpan, Unit};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use std::{fmt, time::SystemTime};
@@ -66,7 +67,10 @@ impl ModelRequest {
         db: &SqlitePool,
         push_request: &PushRequest,
     ) -> Result<i64, AppError> {
-        let one_hour = time::Duration::HOUR.whole_seconds();
+        let one_hour = 1
+            .hour()
+            .round(SpanRound::new().largest(Unit::Second))
+            .map_or(0, |i| i.get_seconds());
         let result = sqlx::query_as::<_, Count>(Self::count_query(push_request))
             .bind(Self::now_i64() - one_hour)
             .bind(Self::now_i64())
@@ -180,8 +184,7 @@ mod tests {
 
         for i in 1..=4 {
             let sql = "INSERT INTO request(timestamp, is_alarm) VALUES ($1, true)";
-            let timestamp =
-                ModelRequest::now_i64() - (time::Duration::MINUTE.whole_seconds() * (i * 25));
+            let timestamp = ModelRequest::now_i64() - (60 * (i * 25));
 
             sqlx::query(sql).bind(timestamp).execute(&db).await.unwrap();
             let sql = "INSERT INTO request(timestamp, is_alarm) VALUES ($1, false)";
