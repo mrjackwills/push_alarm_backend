@@ -2,7 +2,7 @@
 # SETUP #
 #########
 
-FROM alpine:3.19 AS setup
+FROM alpine AS setup
 
 # This should get automatically updated on every release via create_release.sh
 # DO NOT EDIT MANUALLY
