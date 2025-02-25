@@ -36,12 +36,10 @@ serde_json = "1.0"
 simple-signal = "1.1"
 sqlx = { version = "0.8", default-features = false, features = [
 	"macros",
-	"runtime-tokio-rustls",
+	"runtime-tokio",
 	"sqlite",
 ] }
 thiserror = "2.0"
-# time = { version = "0.3", features = ["local-offset"] }
-# time-tz = "2.0"
 tokio = { version = "1.43", features = ["full"] }
 tokio-tungstenite = { version = "0.26", features = ["rustls-tls-native-roots"] }
 tracing = "0.1"
@@ -49,7 +47,7 @@ tracing-subscriber = "0.3"
 url = "2.5"
 
 [dev-dependencies]
-uuid = {version = "1.11",features = ["v4","fast-rng"]}
+uuid = {version = "1.14",features = ["v4","fast-rng"]}
 
 [profile.release]
 lto = true
