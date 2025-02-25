@@ -1,11 +1,14 @@
+# <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.3.0'>v0.3.0</a>
+### 2025-02-25
+
 ### Chores
-+ Dockerfile alpine bump, [6cea2c8bb81bc509b0c76fea4fe48662c8636763]
-+ dependencies updated, [5c8d102e337a0a4655d2d6f8796dd6c0d9836933]
-+ .devcontainer updated, [2ec4995b77a03073a3cddded44841e7299f8059d]
++ Dockerfile alpine bump, [6cea2c8b](https://github.com/mrjackwills/push_alarm_backend/commit/6cea2c8bb81bc509b0c76fea4fe48662c8636763)
++ dependencies updated, [5c8d102e](https://github.com/mrjackwills/push_alarm_backend/commit/5c8d102e337a0a4655d2d6f8796dd6c0d9836933)
++ .devcontainer updated, [2ec4995b](https://github.com/mrjackwills/push_alarm_backend/commit/2ec4995b77a03073a3cddded44841e7299f8059d)
 
 ### Features
-+ use jiff for all time methods, [741d480c526a18cb78889ef3ed7a3507217f5ea7]
-+ use Rust 2024 edition, [a5e1ef2b6aa7abd7deaa6004a8c33132d69c7c41]
++ use jiff for all time methods, [741d480c](https://github.com/mrjackwills/push_alarm_backend/commit/741d480c526a18cb78889ef3ed7a3507217f5ea7)
++ use Rust 2024 edition, [a5e1ef2b](https://github.com/mrjackwills/push_alarm_backend/commit/a5e1ef2b6aa7abd7deaa6004a8c33132d69c7c41)
 
 # <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.2.4'>v0.2.4</a>
 ### 2025-01-13
