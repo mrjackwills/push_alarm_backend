@@ -44,12 +44,12 @@ impl ModelRequest {
 
     const fn count_query<'a>(push_request: &PushRequest) -> &'a str {
         match push_request {
-                PushRequest::Alarm(_) => {
-                    "SELECT COUNT(*) AS count FROM request WHERE is_alarm = TRUE AND timestamp BETWEEN $1 AND $2 ORDER BY timestamp"
-                },
-                PushRequest::Test(_) => {
-                    "SELECT COUNT(*) AS count FROM request WHERE is_alarm = FALSE AND timestamp BETWEEN $1 AND $2 ORDER BY timestamp"
-                }
+            PushRequest::Alarm(_) => {
+                "SELECT COUNT(*) AS count FROM request WHERE is_alarm = TRUE AND timestamp BETWEEN $1 AND $2 ORDER BY timestamp"
+            }
+            PushRequest::Test(_) => {
+                "SELECT COUNT(*) AS count FROM request WHERE is_alarm = FALSE AND timestamp BETWEEN $1 AND $2 ORDER BY timestamp"
+            }
         }
     }
 
@@ -77,8 +77,7 @@ impl ModelRequest {
 
     // insert a new request with timestamp
     pub async fn insert(db: &SqlitePool, push_request: &PushRequest) -> Result<Self, AppError> {
-        let sql =
-            "INSERT INTO request(timestamp, is_alarm) VALUES ($1, $2) RETURNING request_id, is_alarm, timestamp";
+        let sql = "INSERT INTO request(timestamp, is_alarm) VALUES ($1, $2) RETURNING request_id, is_alarm, timestamp";
         let query = sqlx::query_as::<_, Self>(sql)
             .bind(Self::now_i64())
             .bind(Self::is_alarm(push_request))

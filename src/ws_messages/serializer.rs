@@ -1,4 +1,4 @@
-use serde::{de, Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, de};
 use std::ops::RangeInclusive;
 use time_tz::timezones;
 pub struct IncomingSerializer;
@@ -68,8 +68,8 @@ impl IncomingSerializer {
 #[cfg(test)]
 #[expect(clippy::unwrap_used)]
 mod tests {
-    use serde::de::value::{Error as ValueError, StringDeserializer, U8Deserializer};
     use serde::de::IntoDeserializer;
+    use serde::de::value::{Error as ValueError, StringDeserializer, U8Deserializer};
 
     use crate::S;
 

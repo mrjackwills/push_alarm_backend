@@ -4,7 +4,7 @@ use sqlx::SqlitePool;
 use std::net::IpAddr;
 use url::Url;
 
-use crate::{app_env::AppEnv, app_error::AppError, db::ModelRequest, C};
+use crate::{C, app_env::AppEnv, app_error::AppError, db::ModelRequest};
 
 /// Pushover api url
 const URL: &str = "https://api.pushover.net/1/messages.json";
@@ -134,8 +134,8 @@ mod tests {
 
     use super::*;
     use crate::{
-        tests::{test_cleanup, test_setup},
         S,
+        tests::{test_cleanup, test_setup},
     };
 
     #[tokio::test]

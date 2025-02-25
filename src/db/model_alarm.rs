@@ -92,7 +92,10 @@ mod tests {
         let result = ModelAlarm::add(&db, data).await;
         assert!(result.is_err());
 
-        assert_eq!(result.unwrap_err().to_string(), "Internal Database Error: error returned from database: (code: 1811) only one alarm allowed");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Internal Database Error: error returned from database: (code: 1811) only one alarm allowed"
+        );
 
         test_cleanup(uuid, Some(db)).await;
     }
