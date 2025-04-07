@@ -89,7 +89,6 @@ impl WSSender {
         }
     }
 
-    // TODO check this when changing timezone? Use current time + current alarm (if set)
     /// Validate that an alarm can be edited, need to be more than six hour difference
     fn valid_change(current_time: Time, alarm_hour: i8, alarm_minute: i8) -> Result<(), ()> {
         let current_as_sec =
