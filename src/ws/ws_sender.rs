@@ -188,6 +188,15 @@ impl WSSender {
     /// Change the timezone in database to new given database,
     /// also update timezone in alarm scheduler
     async fn time_zone(&self, zone: String) {
+        if let Some(alarm) = ModelAlarm::get(&self.db).await.unwrap_or_default() {
+            if let Some(current_time) = ModelTimezone::get(&self.db).await {
+                if Self::valid_change(current_time.to_time(), alarm.hour, alarm.minute).is_err() {
+                    self.too_close().await;
+                    return;
+                }
+            }
+        }
+
         if TimeZone::get(&zone).is_ok() {
             ModelTimezone::update(&self.db, &zone).await.ok();
             self.sx.send(CronMessage::Reset).await.ok();
