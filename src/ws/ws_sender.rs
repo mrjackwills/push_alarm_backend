@@ -89,7 +89,6 @@ impl WSSender {
         }
     }
 
-    // TODO check this when changing timezone? Use current time + current alarm (if set)
     /// Validate that an alarm can be edited, need to be more than six hour difference
     fn valid_change(current_time: Time, alarm_hour: i8, alarm_minute: i8) -> Result<(), ()> {
         let current_as_sec =
@@ -188,6 +187,15 @@ impl WSSender {
     /// Change the timezone in database to new given database,
     /// also update timezone in alarm scheduler
     async fn time_zone(&self, zone: String) {
+        if let Some(alarm) = ModelAlarm::get(&self.db).await.unwrap_or_default() {
+            if let Some(current_time) = ModelTimezone::get(&self.db).await {
+                if Self::valid_change(current_time.to_time(), alarm.hour, alarm.minute).is_err() {
+                    self.too_close().await;
+                    return;
+                }
+            }
+        }
+
         if TimeZone::get(&zone).is_ok() {
             ModelTimezone::update(&self.db, &zone).await.ok();
             self.sx.send(CronMessage::Reset).await.ok();

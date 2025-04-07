@@ -12,12 +12,8 @@ use alarm_schedule::AlarmSchedule;
 use app_env::AppEnv;
 use app_error::AppError;
 use db::init_db;
-use mimalloc::MiMalloc;
 use word_art::Intro;
 use ws::open_connection;
-
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
 
 /// Simple macro to create a new String, or convert from a &str to  a String - basically just gets rid of String::from() / .to_owned() etc
 #[macro_export]

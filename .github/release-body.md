@@ -1,12 +1,10 @@
-### 2025-02-25
+### 2025-04-07
 
 ### Chores
-+ Dockerfile alpine bump, [6cea2c8bb81bc509b0c76fea4fe48662c8636763]
-+ dependencies updated, [5c8d102e337a0a4655d2d6f8796dd6c0d9836933]
-+ .devcontainer updated, [2ec4995b77a03073a3cddded44841e7299f8059d]
++ dependencies updated, [d49c36a7f5db0dc95fcb3f027c1c27d6922c3ac7]
++ Rust 1.86.0 linting, [2b6bea1daea81e3650c7e3fc8a122de7de500fed]
 
 ### Features
-+ use jiff for all time methods, [741d480c526a18cb78889ef3ed7a3507217f5ea7]
-+ use Rust 2024 edition, [a5e1ef2b6aa7abd7deaa6004a8c33132d69c7c41]
++ timezone change use valid_change, [9d9be3e64ca941811125f82316a40c75973b2609]
 
 see <a href='https://github.com/mrjackwills/push_alarm_backend/blob/main/CHANGELOG.md'>CHANGELOG.md</a> for more details
