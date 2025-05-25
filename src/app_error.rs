@@ -10,8 +10,8 @@ pub enum AppError {
     Reqwest(#[from] reqwest::Error),
     #[error("Internal Database Error: {0}")]
     Sqlx(#[from] sqlx::Error),
-    #[error("WS Connect")]
-    TungsteniteConnect(#[from] tokio_tungstenite::tungstenite::Error),
+    #[error("WS Connect: {0}")]
+    TungsteniteConnect(String),
     #[error("Url parsing error: {0}")]
     Url(#[from] url::ParseError),
     #[error("Invalid WS Status Code")]

@@ -1,3 +1,17 @@
+# <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.3.2'>v0.3.2</a>
+### 2025-05-25
+
+### Chores
++ .devcontainer updated, [f3e19d93](https://github.com/mrjackwills/push_alarm_backend/commit/f3e19d934ed4d56338f074a63e5ec82be3b3afc6)
++ dependencies updated, [89b13d47](https://github.com/mrjackwills/push_alarm_backend/commit/89b13d4718da450f8519f7525dbe696479cdb13e)
++ Rust 1.87.0 linting, [59bcdb02](https://github.com/mrjackwills/push_alarm_backend/commit/59bcdb0227fe2488a269b517f19b80fc350077bc)
+
+### Features
++ mimalloc, [ca4b9c87](https://github.com/mrjackwills/push_alarm_backend/commit/ca4b9c87ec633c200f27bf40b33e8d1f53abc615)
+
+### Fixes
++ run.sh, [a2f5a5a3](https://github.com/mrjackwills/push_alarm_backend/commit/a2f5a5a37b36cb8533011254e6a6c91896b27bb8)
+
 # <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.3.1'>v0.3.1</a>
 ### 2025-04-07
 
