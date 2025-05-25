@@ -1,10 +1,14 @@
-### 2025-04-07
+### 2025-05-25
 
 ### Chores
-+ dependencies updated, [d49c36a7f5db0dc95fcb3f027c1c27d6922c3ac7]
-+ Rust 1.86.0 linting, [2b6bea1daea81e3650c7e3fc8a122de7de500fed]
++ .devcontainer updated, [f3e19d934ed4d56338f074a63e5ec82be3b3afc6]
++ dependencies updated, [89b13d4718da450f8519f7525dbe696479cdb13e]
++ Rust 1.87.0 linting, [59bcdb0227fe2488a269b517f19b80fc350077bc]
 
 ### Features
-+ timezone change use valid_change, [9d9be3e64ca941811125f82316a40c75973b2609]
++ mimalloc, [ca4b9c87ec633c200f27bf40b33e8d1f53abc615]
+
+### Fixes
++ run.sh, [a2f5a5a37b36cb8533011254e6a6c91896b27bb8]
 
 see <a href='https://github.com/mrjackwills/push_alarm_backend/blob/main/CHANGELOG.md'>CHANGELOG.md</a> for more details
