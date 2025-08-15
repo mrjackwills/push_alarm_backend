@@ -109,10 +109,8 @@ impl AlarmSchedule {
 
     // Get timezone from db and store into self, also update offset
     async fn refresh_timezone(&mut self) {
-        if let Some(time_zone) = ModelTimezone::get(&self.sqlite).await {
-            if self.time_zone != time_zone {
+        if let Some(time_zone) = ModelTimezone::get(&self.sqlite).await && self.time_zone != time_zone {
                 self.time_zone = time_zone;
-            }
         }
     }
 
