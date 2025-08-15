@@ -1,14 +1,8 @@
-### 2025-05-25
+### 2025-08-15
 
 ### Chores
-+ .devcontainer updated, [f3e19d934ed4d56338f074a63e5ec82be3b3afc6]
-+ dependencies updated, [89b13d4718da450f8519f7525dbe696479cdb13e]
-+ Rust 1.87.0 linting, [59bcdb0227fe2488a269b517f19b80fc350077bc]
-
-### Features
-+ mimalloc, [ca4b9c87ec633c200f27bf40b33e8d1f53abc615]
-
-### Fixes
-+ run.sh, [a2f5a5a37b36cb8533011254e6a6c91896b27bb8]
++ create_release.sh updated, [1de4c2874ac48ecfd47974a89873100440a9cb71]
++ dependencies updated, [336397c41307518c226860688234eccc3aba6ce2]
++ Rust 1.89 linting, [0c8d3b6d73dc2e6aa9a06d0ea902a7d058c749b1]
 
 see <a href='https://github.com/mrjackwills/push_alarm_backend/blob/main/CHANGELOG.md'>CHANGELOG.md</a> for more details

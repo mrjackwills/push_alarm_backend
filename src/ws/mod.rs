@@ -68,6 +68,7 @@ async fn incoming_ws_message(mut reader: WSReader, ws_sender: WSSender) {
 
 /// need to spawn a new receiver on each connect
 /// try to open WS connection, and spawn a ThreadChannel message handler
+#[allow(clippy::cognitive_complexity)]
 pub async fn open_connection(
     app_envs: AppEnv,
     db: SqlitePool,
