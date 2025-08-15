@@ -140,35 +140,37 @@ impl WSSender {
     /// Delete all alarm in database, and update alarm_schedule
     async fn alarm_delete(&self) {
         if let Ok(Some(alarm)) = ModelAlarm::get(&self.db).await
-            && let Some(current_time) = ModelTimezone::get(&self.db).await {
-                let current_time = current_time.to_time();
-                if Self::valid_change(current_time, alarm.hour, alarm.minute).is_ok() {
-                    if let Err(e) = ModelAlarm::delete(&self.db).await {
-                        tracing::error!("{e}");
-                    }
-                    self.sx.send(CronMessage::Reset).await.ok();
-                    self.send_status().await;
-                } else {
-                    self.too_close().await;
+            && let Some(current_time) = ModelTimezone::get(&self.db).await
+        {
+            let current_time = current_time.to_time();
+            if Self::valid_change(current_time, alarm.hour, alarm.minute).is_ok() {
+                if let Err(e) = ModelAlarm::delete(&self.db).await {
+                    tracing::error!("{e}");
                 }
+                self.sx.send(CronMessage::Reset).await.ok();
+                self.send_status().await;
+            } else {
+                self.too_close().await;
             }
+        }
     }
 
     /// Update the alarm in the database, and update alarm_schedule
     async fn alarm_update(&self, hour: u8, minute: u8) {
         if let Ok(Some(alarm)) = ModelAlarm::get(&self.db).await
-            && let Some(current_time) = ModelTimezone::get(&self.db).await {
-                let current_time = current_time.to_time();
-                if Self::valid_change(current_time, alarm.hour, alarm.minute).is_ok() {
-                    if let Err(e) = ModelAlarm::update(&self.db, (hour, minute)).await {
-                        tracing::error!("{e}");
-                    }
-                    self.sx.send(CronMessage::Reset).await.ok();
-                    self.send_status().await;
-                } else {
-                    self.too_close().await;
+            && let Some(current_time) = ModelTimezone::get(&self.db).await
+        {
+            let current_time = current_time.to_time();
+            if Self::valid_change(current_time, alarm.hour, alarm.minute).is_ok() {
+                if let Err(e) = ModelAlarm::update(&self.db, (hour, minute)).await {
+                    tracing::error!("{e}");
                 }
+                self.sx.send(CronMessage::Reset).await.ok();
+                self.send_status().await;
+            } else {
+                self.too_close().await;
             }
+        }
     }
 
     async fn too_close(&self) {
@@ -187,10 +189,11 @@ impl WSSender {
     async fn time_zone(&self, zone: String) {
         if let Some(alarm) = ModelAlarm::get(&self.db).await.unwrap_or_default()
             && let Some(current_time) = ModelTimezone::get(&self.db).await
-                && Self::valid_change(current_time.to_time(), alarm.hour, alarm.minute).is_err() {
-                    self.too_close().await;
-                    return;
-                }
+            && Self::valid_change(current_time.to_time(), alarm.hour, alarm.minute).is_err()
+        {
+            self.too_close().await;
+            return;
+        }
 
         if TimeZone::get(&zone).is_ok() {
             ModelTimezone::update(&self.db, &zone).await.ok();
