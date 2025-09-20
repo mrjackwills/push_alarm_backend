@@ -23,7 +23,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 16mb
+          memory: 32mb
 networks:
   push_alarm_net:
     name: push_alarm_net
