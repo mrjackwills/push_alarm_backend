@@ -1,7 +1,6 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
-use std::net::IpAddr;
 use url::Url;
 
 use crate::{C, app_env::AppEnv, app_error::AppError, db::ModelRequest};
@@ -16,12 +15,6 @@ type Params<'a> = [(&'a str, String); 4];
 struct PostRequest {
     status: usize,
     request: String,
-}
-
-/// Response from the what's my ip api
-#[derive(Debug, Serialize, Deserialize)]
-struct IpResponse {
-    ip: IpAddr,
 }
 
 pub enum PushRequest {
