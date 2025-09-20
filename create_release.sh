@@ -213,6 +213,11 @@ cross_build_armv6_linux() {
 	cross build --target arm-unknown-linux-musleabihf --release
 }
 
+cargo_clean() {
+	echo -e "${YELLOW}cargo clean${RESET}"
+	cargo clean
+}
+
 # Build all releases that GitHub workflow would
 # This will download GB's of docker images
 # $1 is 0 or 1, if 1 won't run ask_continue
@@ -333,7 +338,7 @@ build_choice() {
 		2 "aarch64 musl linux" off
 		3 "armv6 musl linux" off
 		4 "all" off
-		4 "all auto" off
+		5 "all automatic" off
 	)
 	choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 	exitStatus=$?
