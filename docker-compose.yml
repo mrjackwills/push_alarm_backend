@@ -1,7 +1,7 @@
 
 services:
   push_alarm:
-    image: push_alarm:0.3.3
+    image: push_alarm:0.3.4
     build:
       context: .
       dockerfile: Dockerfile
@@ -23,7 +23,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 16mb
+          memory: 32mb
 networks:
   push_alarm_net:
     name: push_alarm_net
