@@ -12,7 +12,8 @@ use crate::alarm_schedule::CronMessage;
 use crate::request::PushRequest;
 use crate::sysinfo::SysInfo;
 use crate::ws_messages::{
-    MessageValues, ParsedMessage, PiStatus, Response, StructuredResponse, TestRequest,
+    HourMinuteMsg, MessageValues, ParsedMessage, PiStatus, Response, StructuredResponse,
+    TestRequest,
 };
 use crate::{
     app_env::AppEnv,
@@ -60,19 +61,14 @@ impl WSSender {
                 MessageValues::Valid(msg, unique) => {
                     self.unique = Some(unique);
                     match msg {
+                        ParsedMessage::AlarmAdd(hm) => self.alarm_add(hm).await,
                         ParsedMessage::AlarmDelete => self.alarm_delete().await,
                         ParsedMessage::AlarmDismiss => self.alarm_dismiss().await,
-
-                        ParsedMessage::AlarmUpdate(hm) => {
-                            self.alarm_update(hm.hour, hm.minute).await;
-                        }
-                        ParsedMessage::AlarmAdd(hm) => {
-                            self.alarm_add(hm.hour, hm.minute).await;
-                        }
+                        ParsedMessage::AlarmUpdate(hm) => self.alarm_update(hm).await,
                         ParsedMessage::Restart => self.restart().await,
+                        ParsedMessage::Status => self.send_status().await,
                         ParsedMessage::TestRequest(msg) => self.test_request(msg).await,
                         ParsedMessage::TimeZone(timezone) => self.time_zone(timezone.zone).await,
-                        ParsedMessage::Status => self.send_status().await,
                     }
                 }
             }
@@ -82,7 +78,7 @@ impl WSSender {
     /// Send a test request of a given message
     async fn test_request(&self, msg: TestRequest) {
         if let Err(e) = PushRequest::Test(msg.message)
-            .make_request(&self.app_envs, &self.db)
+            .make_request(&self.app_envs, &self.db, None)
             .await
         {
             tracing::error!("{e}");
@@ -122,8 +118,8 @@ impl WSSender {
     }
 
     /// Add a new alarm to database, and update alarm_schedule
-    async fn alarm_add(&self, hour: u8, minute: u8) {
-        if let Err(e) = ModelAlarm::add(&self.db, (hour, minute)).await {
+    async fn alarm_add(&self, hm: HourMinuteMsg) {
+        if let Err(e) = ModelAlarm::add(&self.db, hm).await {
             tracing::error!("{e}");
             self.send_error(&format!("{e}")).await;
         } else {
@@ -156,13 +152,13 @@ impl WSSender {
     }
 
     /// Update the alarm in the database, and update alarm_schedule
-    async fn alarm_update(&self, hour: u8, minute: u8) {
+    async fn alarm_update(&self, hm: HourMinuteMsg) {
         if let Ok(Some(alarm)) = ModelAlarm::get(&self.db).await
             && let Some(current_time) = ModelTimezone::get(&self.db).await
         {
             let current_time = current_time.to_time();
             if Self::valid_change(current_time, alarm.hour, alarm.minute).is_ok() {
-                if let Err(e) = ModelAlarm::update(&self.db, (hour, minute)).await {
+                if let Err(e) = ModelAlarm::update(&self.db, hm).await {
                     tracing::error!("{e}");
                 }
                 self.sx.send(CronMessage::Reset).await.ok();

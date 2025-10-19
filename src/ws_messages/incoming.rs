@@ -11,9 +11,9 @@ pub enum MessageValues {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "snake_case", tag = "name", content = "body")]
 pub enum ParsedMessage {
-    AlarmAdd(HourMinute),
+    AlarmAdd(HourMinuteMsg),
     AlarmDelete,
-    AlarmUpdate(HourMinute),
+    AlarmUpdate(HourMinuteMsg),
     AlarmDismiss,
     Restart,
     Status,
@@ -28,11 +28,23 @@ pub struct TestRequest {
 }
 
 #[derive(Deserialize, Debug, Serialize)]
-pub struct HourMinute {
+pub struct HourMinuteMsg {
     #[serde(deserialize_with = "is::hour")]
     pub hour: u8,
     #[serde(deserialize_with = "is::minute")]
     pub minute: u8,
+    pub message: Option<String>,
+}
+
+#[cfg(debug_assertions)]
+impl From<(u8, u8, Option<String>)> for HourMinuteMsg {
+    fn from(data: (u8, u8, Option<String>)) -> Self {
+        Self {
+            hour: data.0,
+            minute: data.1,
+            message: data.2,
+        }
+    }
 }
 
 #[derive(Deserialize, Debug, Serialize)]

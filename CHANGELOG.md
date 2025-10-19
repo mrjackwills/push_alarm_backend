@@ -1,3 +1,12 @@
+# <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.4.0'>v0.4.0</a>
+### 2025-10-19
+
+### Chores
++ dependencies updated, [04c217ec](https://github.com/mrjackwills/push_alarm_backend/commit/04c217ecb3e82c22fee89237da19e0f4b3d6cbe5)
+
+### Features
++ optional alarm message, [55719c6e](https://github.com/mrjackwills/push_alarm_backend/commit/55719c6eec8da3d337cd714a52d58059cbd3facb)
+
 # <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.3.4'>v0.3.4</a>
 ### 2025-09-25
 

@@ -15,12 +15,12 @@ use crate::{
 };
 
 const ONE_SEC: u64 = 1000;
-const FORTY_FIVE_SEC: Duration = std::time::Duration::from_secs(45);
+const TWENTY_FIVE_SEC: Duration = std::time::Duration::from_secs(25);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CronMessage {
     Reset,
-    AlarmStart,
+    AlarmStart(Option<String>),
     AlarmDismiss,
 }
 
@@ -78,17 +78,19 @@ impl AlarmSchedule {
                         looper.abort();
                     }
                 }
-                CronMessage::AlarmStart => {
+                CronMessage::AlarmStart(msg) => {
                     let sqlite = C!(self.sqlite);
                     let app_envs = C!(self.app_env);
+                    let msg = msg.clone();
                     self.loop_alarm = Some(tokio::spawn(async move {
                         for i in 1..=40 {
-                            if let Err(e) =
-                                PushRequest::Alarm(i).make_request(&app_envs, &sqlite).await
+                            if let Err(e) = PushRequest::Alarm(i)
+                                .make_request(&app_envs, &sqlite, msg.as_deref())
+                                .await
                             {
                                 tracing::error!("{e}");
                             }
-                            tokio::time::sleep(FORTY_FIVE_SEC).await;
+                            tokio::time::sleep(TWENTY_FIVE_SEC).await;
                         }
                     }));
                 }
@@ -126,7 +128,9 @@ impl AlarmSchedule {
                 && alarm.minute == current_time.minute()
                 && current_time.second() == 0
             {
-                sx.send(CronMessage::AlarmStart).await.ok();
+                sx.send(CronMessage::AlarmStart(alarm.message.clone()))
+                    .await
+                    .ok();
             }
             let to_sleep = ONE_SEC
                 .saturating_sub(u64::try_from(start.elapsed().as_millis()).unwrap_or(ONE_SEC));
