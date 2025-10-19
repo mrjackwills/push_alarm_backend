@@ -54,13 +54,14 @@ impl PushRequest {
 
     #[cfg(debug_assertions)]
     #[expect(clippy::unused_async)]
-    async fn send_request(_: Url) -> Result<PostRequest, AppError> {
+    async fn send_request(url: Url) -> Result<PostRequest, AppError> {
         use tracing::info;
 
         use crate::S;
 
         let _client = Self::get_client()?;
         info!("sending request");
+        info!("{url:?}");
         Ok(PostRequest {
             status: 1,
             request: S!("request"),
@@ -75,7 +76,7 @@ impl PushRequest {
     }
 
     /// Generate the params, aka the message
-    fn gen_params<'a>(&self, app_envs: &AppEnv) -> Params<'a> {
+    fn gen_params<'a>(&self, app_envs: &AppEnv, msg: Option<&str>) -> Params<'a> {
         let mut params = [
             ("token", C!(app_envs.token_app)),
             ("user", C!(app_envs.token_user)),
@@ -85,7 +86,14 @@ impl PushRequest {
 
         match self {
             Self::Alarm(index) => {
-                params[2].1 = format!("Wake up, loop {index}");
+                let msg = if let Some(msg) = msg
+                    && !msg.is_empty()
+                {
+                    format!("{msg}, loop: {index}")
+                } else {
+                    format!("Wake up, loop: {index}")
+                };
+                params[2].1 = msg;
             }
             Self::Test(message) => {
                 message.clone_into(&mut params[2].1);
@@ -102,14 +110,19 @@ impl PushRequest {
 
     /// Make the request, will check to make sure that haven't made too many request in previous hour
     /// get_ip functions are recursive, to deal with no network at first boot
-    pub async fn make_request(&self, app_envs: &AppEnv, db: &SqlitePool) -> Result<(), AppError> {
+    pub async fn make_request(
+        &self,
+        app_envs: &AppEnv,
+        db: &SqlitePool,
+        msg: Option<&str>,
+    ) -> Result<(), AppError> {
         let requests_made = ModelRequest::count_past_hour(db, self).await?;
 
         if requests_made >= self.hour_limit() {
             Err(AppError::TooManyRequests(requests_made))
         } else {
             tracing::debug!("Sending request");
-            let params = self.gen_params(app_envs);
+            let params = self.gen_params(app_envs, msg);
             let url = reqwest::Url::parse_with_params(URL, &params)?;
             self.insert_request(db).await?;
 
@@ -136,23 +149,31 @@ mod tests {
         let (app_envs, db, uuid) = test_setup().await;
 
         let push_request = PushRequest::Alarm(0);
-        let result = push_request.gen_params(&app_envs);
+        let result = push_request.gen_params(&app_envs, None);
 
         assert_eq!(result[0], ("token", S!("test_token_app")));
-        assert_eq!(result[2], ("message", S!("Wake up, loop 0")));
+        assert_eq!(result[2], ("message", S!("Wake up, loop: 0")));
         assert_eq!(result[1], ("user", S!("test_token_user")));
         assert_eq!(result[3], ("priority", S!("1")));
 
         let push_request = PushRequest::Alarm(8);
-        let result = push_request.gen_params(&app_envs);
+        let result = push_request.gen_params(&app_envs, Some("test_1"));
 
         assert_eq!(result[0], ("token", S!("test_token_app")));
-        assert_eq!(result[2], ("message", S!("Wake up, loop 8")));
+        assert_eq!(result[2], ("message", S!("test_1, loop: 8")));
+        assert_eq!(result[1], ("user", S!("test_token_user")));
+        assert_eq!(result[3], ("priority", S!("1")));
+
+        let push_request = PushRequest::Alarm(0);
+        let result = push_request.gen_params(&app_envs, Some(""));
+
+        assert_eq!(result[0], ("token", S!("test_token_app")));
+        assert_eq!(result[2], ("message", S!("Wake up, loop: 0")));
         assert_eq!(result[1], ("user", S!("test_token_user")));
         assert_eq!(result[3], ("priority", S!("1")));
 
         let push_request = PushRequest::Test(S!("test message"));
-        let result = push_request.gen_params(&app_envs);
+        let result = push_request.gen_params(&app_envs, None);
 
         assert_eq!(result[0], ("token", S!("test_token_app")));
         assert_eq!(result[2], ("message", S!("test message")));
@@ -180,7 +201,9 @@ mod tests {
         assert!(request_len.is_ok());
         assert_eq!(request_len.unwrap().len(), 60);
 
-        let result = PushRequest::Alarm(0).make_request(&app_envs, &db).await;
+        let result = PushRequest::Alarm(0)
+            .make_request(&app_envs, &db, None)
+            .await;
 
         assert!(result.is_err());
         assert_eq!(
@@ -209,7 +232,9 @@ mod tests {
         assert!(request_len.is_ok());
         assert_eq!(request_len.unwrap().len(), 60);
 
-        let result = PushRequest::Alarm(0).make_request(&app_envs, &db).await;
+        let result = PushRequest::Alarm(0)
+            .make_request(&app_envs, &db, None)
+            .await;
         assert!(result.is_ok());
 
         let request_len = ModelRequest::test_get_all(&db).await;
@@ -238,7 +263,7 @@ mod tests {
         assert_eq!(request_len.unwrap().len(), 10);
 
         let result = PushRequest::Test(String::new())
-            .make_request(&app_envs, &db)
+            .make_request(&app_envs, &db, None)
             .await;
 
         assert!(result.is_err());
@@ -268,7 +293,7 @@ mod tests {
         assert_eq!(request_len.unwrap().len(), 10);
 
         let result = PushRequest::Test(String::new())
-            .make_request(&app_envs, &db)
+            .make_request(&app_envs, &db, None)
             .await;
         assert!(result.is_ok());
 
@@ -288,7 +313,9 @@ mod tests {
         assert!(request_len.is_ok());
         assert_eq!(request_len.unwrap().len(), 0);
 
-        let result = PushRequest::Alarm(0).make_request(&app_envs, &db).await;
+        let result = PushRequest::Alarm(0)
+            .make_request(&app_envs, &db, None)
+            .await;
 
         assert!(result.is_ok());
 

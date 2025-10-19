@@ -9,14 +9,15 @@ CREATE TABLE IF NOT EXISTS alarm (
 	minute INTEGER NOT NULL CHECK (
 		minute >= 0
 		AND minute <= 59
-	)
+	),
+	message TEXT
 ) STRICT;
 
-CREATE TRIGGER  IF NOT EXISTS single_alarm
+CREATE TRIGGER IF NOT EXISTS single_alarm
 BEFORE INSERT ON alarm
 WHEN (SELECT COUNT(*) FROM alarm) >= 1
 BEGIN
-    SELECT RAISE(FAIL, 'only one alarm allowed');
+	SELECT RAISE(FAIL, 'only one alarm allowed');
 END;
 
 CREATE TABLE IF NOT EXISTS request (
