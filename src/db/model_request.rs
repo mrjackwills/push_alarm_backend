@@ -48,7 +48,7 @@ impl ModelRequest {
             PushRequest::Alarm(_) => {
                 "SELECT COUNT(*) AS count FROM request WHERE is_alarm = TRUE AND timestamp BETWEEN $1 AND $2 ORDER BY timestamp"
             }
-            PushRequest::Test(_) => {
+            PushRequest::TestRequest => {
                 "SELECT COUNT(*) AS count FROM request WHERE is_alarm = FALSE AND timestamp BETWEEN $1 AND $2 ORDER BY timestamp"
             }
         }
@@ -58,7 +58,7 @@ impl ModelRequest {
     const fn is_alarm(push_request: &PushRequest) -> bool {
         match push_request {
             PushRequest::Alarm(_) => true,
-            PushRequest::Test(_) => false,
+            PushRequest::TestRequest => false,
         }
     }
 
@@ -107,10 +107,10 @@ mod tests {
 
     #[tokio::test]
     async fn model_request_add_ok() {
-        let (_app_envs, db, uuid) = test_setup().await;
+        let (_app_envs, sqlite, uuid) = test_setup().await;
 
         let now = ModelRequest::now();
-        let result = ModelRequest::insert(&db, &PushRequest::Alarm(0)).await;
+        let result = ModelRequest::insert(&sqlite, &PushRequest::Alarm(0)).await;
 
         assert!(result.is_ok());
         let result = result.unwrap();
@@ -118,45 +118,45 @@ mod tests {
         assert_eq!(result.timestamp, now);
         assert!(result.is_alarm);
 
-        let result = ModelRequest::insert(&db, &PushRequest::Test(String::new())).await;
+        let result = ModelRequest::insert(&sqlite, &PushRequest::TestRequest).await;
 
         assert!(result.is_ok());
         let result = result.unwrap();
         assert_eq!(result.request_id, 2);
         assert!(!result.is_alarm);
         assert_eq!(result.timestamp, now);
-        test_cleanup(uuid, Some(db)).await;
+        test_cleanup(uuid, Some(sqlite)).await;
     }
 
     #[tokio::test]
     async fn model_request_offset() {
-        let (_app_envs, db, uuid) = test_setup().await;
+        let (_app_envs, sqlite, uuid) = test_setup().await;
 
         let now = ModelRequest::now();
-        let result = ModelRequest::insert(&db, &PushRequest::Alarm(0)).await;
+        let result = ModelRequest::insert(&sqlite, &PushRequest::Alarm(0)).await;
 
         assert!(result.is_ok());
         let result = result.unwrap();
         assert_eq!(result.request_id, 1);
         assert!(result.is_alarm);
         assert_eq!(result.timestamp, now);
-        test_cleanup(uuid, Some(db)).await;
+        test_cleanup(uuid, Some(sqlite)).await;
     }
 
     #[tokio::test]
     async fn model_request_get_all_ok() {
-        let (_app_envs, db, uuid) = test_setup().await;
+        let (_app_envs, sqlite, uuid) = test_setup().await;
         let now = ModelRequest::now();
         for i in 0..4 {
             let sql = "INSERT INTO request(timestamp, is_alarm) VALUES ($1, true)";
             sqlx::query(sql)
                 .bind(i64::try_from(now + i).unwrap())
-                .execute(&db)
+                .execute(&sqlite)
                 .await
                 .unwrap();
         }
 
-        let result = ModelRequest::test_get_all(&db).await;
+        let result = ModelRequest::test_get_all(&sqlite).await;
 
         assert!(result.is_ok());
         let result = result.unwrap();
@@ -174,31 +174,39 @@ mod tests {
         assert_eq!(result[3].timestamp, now + 3);
         assert_eq!(result[3].request_id, 4);
 
-        test_cleanup(uuid, Some(db)).await;
+        test_cleanup(uuid, Some(sqlite)).await;
     }
 
     #[tokio::test]
     // Four requests inserted, two over an hour ago
     async fn model_request_get_last_hour_alarm() {
-        let (_app_envs, db, uuid) = test_setup().await;
+        let (_app_envs, sqlite, uuid) = test_setup().await;
 
         for i in 1..=4 {
             let sql = "INSERT INTO request(timestamp, is_alarm) VALUES ($1, true)";
             let timestamp = ModelRequest::now_i64() - (60 * (i * 25));
 
-            sqlx::query(sql).bind(timestamp).execute(&db).await.unwrap();
+            sqlx::query(sql)
+                .bind(timestamp)
+                .execute(&sqlite)
+                .await
+                .unwrap();
             let sql = "INSERT INTO request(timestamp, is_alarm) VALUES ($1, false)";
 
-            sqlx::query(sql).bind(timestamp).execute(&db).await.unwrap();
+            sqlx::query(sql)
+                .bind(timestamp)
+                .execute(&sqlite)
+                .await
+                .unwrap();
         }
 
-        let result = ModelRequest::count_past_hour(&db, &PushRequest::Alarm(0)).await;
+        let result = ModelRequest::count_past_hour(&sqlite, &PushRequest::Alarm(0)).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 2);
-        let result = ModelRequest::count_past_hour(&db, &PushRequest::Test(String::new())).await;
+        let result = ModelRequest::count_past_hour(&sqlite, &PushRequest::TestRequest).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 2);
 
-        test_cleanup(uuid, Some(db)).await;
+        test_cleanup(uuid, Some(sqlite)).await;
     }
 }

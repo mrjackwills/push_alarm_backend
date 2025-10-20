@@ -71,7 +71,7 @@ async fn incoming_ws_message(mut reader: WSReader, ws_sender: WSSender) {
 #[allow(clippy::cognitive_complexity)]
 pub async fn open_connection(
     app_envs: AppEnv,
-    db: SqlitePool,
+    sqlite: SqlitePool,
     sx: Sender<CronMessage>,
 ) -> Result<(), AppError> {
     let mut connection_details = ConnectionDetails::new();
@@ -89,7 +89,7 @@ pub async fn open_connection(
                 let ws_sender = WSSender::new(
                     &app_envs,
                     connection_details.get_connect_instant(),
-                    &db,
+                    &sqlite,
                     C!(sx),
                     Arc::new(Mutex::new(writer)),
                 );

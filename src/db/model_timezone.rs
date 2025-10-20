@@ -105,40 +105,41 @@ mod tests {
         app_envs.timezone = TimeZone::get("America/New_York").unwrap();
 
         file_exists(&app_envs.location_sqlite);
-        let db = get_db(&app_envs).await.unwrap();
-        create_tables(&db).await;
+        let sqlite = get_db(&app_envs).await.unwrap();
+        create_tables(&sqlite).await;
 
-        let result: Result<ModelTimezone, AppError> = ModelTimezone::insert(&db, &app_envs).await;
+        let result: Result<ModelTimezone, AppError> =
+            ModelTimezone::insert(&sqlite, &app_envs).await;
 
         assert!(result.is_ok());
-        let result_timezone = ModelTimezone::get(&db).await.unwrap();
+        let result_timezone = ModelTimezone::get(&sqlite).await.unwrap();
         assert_eq!(result_timezone.zone_name, "America/New_York");
-        test_cleanup(uuid, Some(db)).await;
+        test_cleanup(uuid, Some(sqlite)).await;
     }
 
     #[tokio::test]
     async fn model_timezone_get_ok_with_init() {
-        let (_, db, uuid) = test_setup().await;
-        let result = ModelTimezone::get(&db).await;
+        let (_, sqlite, uuid) = test_setup().await;
+        let result = ModelTimezone::get(&sqlite).await;
 
         assert!(result.is_some());
         let result = result.unwrap();
         assert_eq!(result.zone_name, "Europe/London");
-        test_cleanup(uuid, Some(db)).await;
+        test_cleanup(uuid, Some(sqlite)).await;
     }
 
     #[tokio::test]
     async fn model_timezone_update_ok() {
-        let (_, db, uuid) = test_setup().await;
-        let result = ModelTimezone::get(&db).await.unwrap();
+        let (_, sqlite, uuid) = test_setup().await;
+        let result = ModelTimezone::get(&sqlite).await.unwrap();
         assert_eq!(result.zone_name, "Europe/London");
 
-        let result = ModelTimezone::update(&db, "America/New_York").await;
+        let result = ModelTimezone::update(&sqlite, "America/New_York").await;
 
         assert!(result.is_ok());
         let result = result.unwrap();
         assert_eq!(result.timezone_id, 1);
         assert_eq!(result.zone_name, "America/New_York");
-        test_cleanup(uuid, Some(db)).await;
+        test_cleanup(uuid, Some(sqlite)).await;
     }
 }

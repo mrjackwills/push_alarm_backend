@@ -19,7 +19,7 @@ struct PostRequest {
 
 pub enum PushRequest {
     Alarm(u8),
-    Test(String),
+    TestRequest,
 }
 
 impl PushRequest {
@@ -27,7 +27,7 @@ impl PushRequest {
     const fn hour_limit(&self) -> i64 {
         match self {
             Self::Alarm(_) => 60,
-            Self::Test(_) => 10,
+            Self::TestRequest => 10,
         }
     }
 
@@ -71,12 +71,12 @@ impl PushRequest {
     const fn get_priority<'a>(&self) -> &'a str {
         match self {
             Self::Alarm(_) => "1",
-            Self::Test(_) => "0",
+            Self::TestRequest => "0",
         }
     }
 
     /// Generate the params, aka the message
-    fn gen_params<'a>(&self, app_envs: &AppEnv, msg: Option<&str>) -> Params<'a> {
+    fn gen_params<'a>(&self, app_envs: &AppEnv, msg: &str) -> Params<'a> {
         let mut params = [
             ("token", C!(app_envs.token_app)),
             ("user", C!(app_envs.token_user)),
@@ -86,25 +86,18 @@ impl PushRequest {
 
         match self {
             Self::Alarm(index) => {
-                let msg = if let Some(msg) = msg
-                    && !msg.is_empty()
-                {
-                    format!("{msg}, loop: {index}")
-                } else {
-                    format!("Wake up, loop: {index}")
-                };
-                params[2].1 = msg;
+                params[2].1 = format!("{msg} - {index}");
             }
-            Self::Test(message) => {
-                message.clone_into(&mut params[2].1);
+            Self::TestRequest => {
+                params[2].1 = msg.to_string();
             }
         }
         params
     }
 
     /// Insert a new request into the database
-    async fn insert_request(&self, db: &SqlitePool) -> Result<(), AppError> {
-        ModelRequest::insert(db, self).await?;
+    async fn insert_request(&self, sqlite: &SqlitePool) -> Result<(), AppError> {
+        ModelRequest::insert(sqlite, self).await?;
         Ok(())
     }
 
@@ -113,10 +106,10 @@ impl PushRequest {
     pub async fn make_request(
         &self,
         app_envs: &AppEnv,
-        db: &SqlitePool,
-        msg: Option<&str>,
+        sqlite: &SqlitePool,
+        msg: &str,
     ) -> Result<(), AppError> {
-        let requests_made = ModelRequest::count_past_hour(db, self).await?;
+        let requests_made = ModelRequest::count_past_hour(sqlite, self).await?;
 
         if requests_made >= self.hour_limit() {
             Err(AppError::TooManyRequests(requests_made))
@@ -124,7 +117,7 @@ impl PushRequest {
             tracing::debug!("Sending request");
             let params = self.gen_params(app_envs, msg);
             let url = reqwest::Url::parse_with_params(URL, &params)?;
-            self.insert_request(db).await?;
+            self.insert_request(sqlite).await?;
 
             Self::send_request(url).await?;
             // do something with the response here?
@@ -146,63 +139,55 @@ mod tests {
 
     #[tokio::test]
     async fn test_request_generate_params() {
-        let (app_envs, db, uuid) = test_setup().await;
+        let (app_envs, sqlite, uuid) = test_setup().await;
 
         let push_request = PushRequest::Alarm(0);
-        let result = push_request.gen_params(&app_envs, None);
+        let result = push_request.gen_params(&app_envs, &uuid.to_string());
 
         assert_eq!(result[0], ("token", S!("test_token_app")));
-        assert_eq!(result[2], ("message", S!("Wake up, loop: 0")));
+        assert_eq!(result[2], ("message", format!("{uuid} - 0")));
         assert_eq!(result[1], ("user", S!("test_token_user")));
         assert_eq!(result[3], ("priority", S!("1")));
 
         let push_request = PushRequest::Alarm(8);
-        let result = push_request.gen_params(&app_envs, Some("test_1"));
+        let result = push_request.gen_params(&app_envs, &uuid.to_string());
 
         assert_eq!(result[0], ("token", S!("test_token_app")));
-        assert_eq!(result[2], ("message", S!("test_1, loop: 8")));
+        assert_eq!(result[2], ("message", format!("{uuid} - 8")));
         assert_eq!(result[1], ("user", S!("test_token_user")));
         assert_eq!(result[3], ("priority", S!("1")));
 
-        let push_request = PushRequest::Alarm(0);
-        let result = push_request.gen_params(&app_envs, Some(""));
+        let push_request = PushRequest::TestRequest;
+        let result = push_request.gen_params(&app_envs, &uuid.to_string());
 
         assert_eq!(result[0], ("token", S!("test_token_app")));
-        assert_eq!(result[2], ("message", S!("Wake up, loop: 0")));
-        assert_eq!(result[1], ("user", S!("test_token_user")));
-        assert_eq!(result[3], ("priority", S!("1")));
-
-        let push_request = PushRequest::Test(S!("test message"));
-        let result = push_request.gen_params(&app_envs, None);
-
-        assert_eq!(result[0], ("token", S!("test_token_app")));
-        assert_eq!(result[2], ("message", S!("test message")));
+        assert_eq!(result[2], ("message", uuid.to_string()));
         assert_eq!(result[1], ("user", S!("test_token_user")));
         assert_eq!(result[3], ("priority", S!("0")));
 
-        test_cleanup(uuid, Some(db)).await;
+        test_cleanup(uuid, Some(sqlite)).await;
     }
 
     #[tokio::test]
     // Alarm request not made if 60+ requests been made in previous 60 minutes
     async fn test_request_make_request_not_made_alarm() {
-        let (app_envs, db, uuid) = test_setup().await;
+        let (app_envs, sqlite, uuid) = test_setup().await;
 
         for _ in 1..=60 {
             let sql = "INSERT INTO request(timestamp, is_alarm) VALUES ($1, true)";
             sqlx::query(sql)
                 .bind(ModelRequest::now_i64())
-                .execute(&db)
+                .execute(&sqlite)
                 .await
                 .unwrap();
         }
 
-        let request_len = ModelRequest::test_get_all(&db).await;
+        let request_len = ModelRequest::test_get_all(&sqlite).await;
         assert!(request_len.is_ok());
         assert_eq!(request_len.unwrap().len(), 60);
 
         let result = PushRequest::Alarm(0)
-            .make_request(&app_envs, &db, None)
+            .make_request(&app_envs, &sqlite, &uuid.to_string())
             .await;
 
         assert!(result.is_err());
@@ -211,59 +196,60 @@ mod tests {
             "Too many requests made in the past hour: 60"
         );
 
-        let request_len = ModelRequest::test_get_all(&db).await;
+        let request_len = ModelRequest::test_get_all(&sqlite).await;
         assert!(request_len.is_ok());
         assert_eq!(request_len.unwrap().len(), 60);
 
-        test_cleanup(uuid, Some(db)).await;
+        test_cleanup(uuid, Some(sqlite)).await;
     }
 
     #[tokio::test]
     // Alarm request made as 60+ request were made more than an hour ago
     async fn test_request_make_request_made_alarm() {
-        let (app_envs, db, uuid) = test_setup().await;
+        let (app_envs, sqlite, uuid) = test_setup().await;
 
         for _ in 1..=60 {
             let sql = "INSERT INTO request(timestamp, is_alarm) VALUES ($1, true)";
-            sqlx::query(sql).bind(0).execute(&db).await.unwrap();
+            sqlx::query(sql).bind(0).execute(&sqlite).await.unwrap();
         }
 
-        let request_len = ModelRequest::test_get_all(&db).await;
+        let request_len = ModelRequest::test_get_all(&sqlite).await;
         assert!(request_len.is_ok());
         assert_eq!(request_len.unwrap().len(), 60);
 
         let result = PushRequest::Alarm(0)
-            .make_request(&app_envs, &db, None)
+            .make_request(&app_envs, &sqlite, &uuid.to_string())
             .await;
         assert!(result.is_ok());
 
-        let request_len = ModelRequest::test_get_all(&db).await;
+        let request_len = ModelRequest::test_get_all(&sqlite).await;
         assert!(request_len.is_ok());
         assert_eq!(request_len.unwrap().len(), 61);
 
-        test_cleanup(uuid, Some(db)).await;
+        test_cleanup(uuid, Some(sqlite)).await;
     }
+
     #[tokio::test]
     // Test request not made if 10+ requests been made in previous 60 minutes
     async fn test_request_make_request_not_made_test() {
-        let (app_envs, db, uuid) = test_setup().await;
+        let (app_envs, sqlite, uuid) = test_setup().await;
 
         for _ in 1..=10 {
             let sql = "INSERT INTO request(timestamp, is_alarm) VALUES ($1, false)";
 
             sqlx::query(sql)
                 .bind(ModelRequest::now_i64())
-                .execute(&db)
+                .execute(&sqlite)
                 .await
                 .unwrap();
         }
 
-        let request_len = ModelRequest::test_get_all(&db).await;
+        let request_len = ModelRequest::test_get_all(&sqlite).await;
         assert!(request_len.is_ok());
         assert_eq!(request_len.unwrap().len(), 10);
 
-        let result = PushRequest::Test(String::new())
-            .make_request(&app_envs, &db, None)
+        let result = PushRequest::TestRequest
+            .make_request(&app_envs, &sqlite, &uuid.to_string())
             .await;
 
         assert!(result.is_err());
@@ -271,58 +257,58 @@ mod tests {
             result.unwrap_err().to_string(),
             "Too many requests made in the past hour: 10"
         );
-        let request_len = ModelRequest::test_get_all(&db).await;
+        let request_len = ModelRequest::test_get_all(&sqlite).await;
         assert!(request_len.is_ok());
         assert_eq!(request_len.unwrap().len(), 10);
 
-        test_cleanup(uuid, Some(db)).await;
+        test_cleanup(uuid, Some(sqlite)).await;
     }
 
     #[tokio::test]
     // Request made, and inserted into db
     async fn test_request_make_request_count() {
-        let (app_envs, db, uuid) = test_setup().await;
+        let (app_envs, sqlite, uuid) = test_setup().await;
 
         for _ in 1..=10 {
             let sql = "INSERT INTO request(timestamp, is_alarm) VALUES ($1, true)";
-            sqlx::query(sql).bind(0).execute(&db).await.unwrap();
+            sqlx::query(sql).bind(0).execute(&sqlite).await.unwrap();
         }
 
-        let request_len = ModelRequest::test_get_all(&db).await;
+        let request_len = ModelRequest::test_get_all(&sqlite).await;
         assert!(request_len.is_ok());
         assert_eq!(request_len.unwrap().len(), 10);
 
-        let result = PushRequest::Test(String::new())
-            .make_request(&app_envs, &db, None)
+        let result = PushRequest::TestRequest
+            .make_request(&app_envs, &sqlite, &uuid.to_string())
             .await;
         assert!(result.is_ok());
 
-        let request_len = ModelRequest::test_get_all(&db).await;
+        let request_len = ModelRequest::test_get_all(&sqlite).await;
         assert!(request_len.is_ok());
         assert_eq!(request_len.unwrap().len(), 11);
 
-        test_cleanup(uuid, Some(db)).await;
+        test_cleanup(uuid, Some(sqlite)).await;
     }
 
     #[tokio::test]
     // Request made, and inserted into db
     async fn test_request_make_request() {
-        let (app_envs, db, uuid) = test_setup().await;
+        let (app_envs, sqlite, uuid) = test_setup().await;
 
-        let request_len = ModelRequest::test_get_all(&db).await;
+        let request_len = ModelRequest::test_get_all(&sqlite).await;
         assert!(request_len.is_ok());
         assert_eq!(request_len.unwrap().len(), 0);
 
         let result = PushRequest::Alarm(0)
-            .make_request(&app_envs, &db, None)
+            .make_request(&app_envs, &sqlite, &uuid.to_string())
             .await;
 
         assert!(result.is_ok());
 
-        let request_len = ModelRequest::test_get_all(&db).await;
+        let request_len = ModelRequest::test_get_all(&sqlite).await;
         assert!(request_len.is_ok());
         assert_eq!(request_len.unwrap().len(), 1);
 
-        test_cleanup(uuid, Some(db)).await;
+        test_cleanup(uuid, Some(sqlite)).await;
     }
 }

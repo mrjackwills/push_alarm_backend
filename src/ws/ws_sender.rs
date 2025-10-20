@@ -29,7 +29,7 @@ use super::WSWriter;
 pub struct WSSender {
     app_envs: AppEnv,
     connected_instant: Instant,
-    db: SqlitePool,
+    sqlite: SqlitePool,
     sx: Sender<CronMessage>,
     writer: Arc<Mutex<WSWriter>>,
     unique: Option<String>,
@@ -46,7 +46,7 @@ impl WSSender {
         Self {
             app_envs: C!(app_envs),
             connected_instant,
-            db: C!(db),
+            sqlite: C!(db),
             sx,
             writer,
             unique: None,
@@ -77,8 +77,8 @@ impl WSSender {
 
     /// Send a test request of a given message
     async fn test_request(&self, msg: TestRequest) {
-        if let Err(e) = PushRequest::Test(msg.message)
-            .make_request(&self.app_envs, &self.db, None)
+        if let Err(e) = PushRequest::TestRequest
+            .make_request(&self.app_envs, &self.sqlite, &msg.message)
             .await
         {
             tracing::error!("{e}");
@@ -119,7 +119,7 @@ impl WSSender {
 
     /// Add a new alarm to database, and update alarm_schedule
     async fn alarm_add(&self, hm: HourMinuteMsg) {
-        if let Err(e) = ModelAlarm::add(&self.db, hm).await {
+        if let Err(e) = ModelAlarm::add(&self.sqlite, hm).await {
             tracing::error!("{e}");
             self.send_error(&format!("{e}")).await;
         } else {
@@ -135,12 +135,12 @@ impl WSSender {
 
     /// Delete all alarm in database, and update alarm_schedule
     async fn alarm_delete(&self) {
-        if let Ok(Some(alarm)) = ModelAlarm::get(&self.db).await
-            && let Some(current_time) = ModelTimezone::get(&self.db).await
+        if let Ok(Some(alarm)) = ModelAlarm::get(&self.sqlite).await
+            && let Some(current_time) = ModelTimezone::get(&self.sqlite).await
         {
             let current_time = current_time.to_time();
             if Self::valid_change(current_time, alarm.hour, alarm.minute).is_ok() {
-                if let Err(e) = ModelAlarm::delete(&self.db).await {
+                if let Err(e) = ModelAlarm::delete(&self.sqlite).await {
                     tracing::error!("{e}");
                 }
                 self.sx.send(CronMessage::Reset).await.ok();
@@ -153,12 +153,12 @@ impl WSSender {
 
     /// Update the alarm in the database, and update alarm_schedule
     async fn alarm_update(&self, hm: HourMinuteMsg) {
-        if let Ok(Some(alarm)) = ModelAlarm::get(&self.db).await
-            && let Some(current_time) = ModelTimezone::get(&self.db).await
+        if let Ok(Some(alarm)) = ModelAlarm::get(&self.sqlite).await
+            && let Some(current_time) = ModelTimezone::get(&self.sqlite).await
         {
             let current_time = current_time.to_time();
             if Self::valid_change(current_time, alarm.hour, alarm.minute).is_ok() {
-                if let Err(e) = ModelAlarm::update(&self.db, hm).await {
+                if let Err(e) = ModelAlarm::update(&self.sqlite, hm).await {
                     tracing::error!("{e}");
                 }
                 self.sx.send(CronMessage::Reset).await.ok();
@@ -183,8 +183,8 @@ impl WSSender {
     /// Change the timezone in database to new given database,
     /// also update timezone in alarm scheduler
     async fn time_zone(&self, zone: String) {
-        if let Some(alarm) = ModelAlarm::get(&self.db).await.unwrap_or_default()
-            && let Some(current_time) = ModelTimezone::get(&self.db).await
+        if let Some(alarm) = ModelAlarm::get(&self.sqlite).await.unwrap_or_default()
+            && let Some(current_time) = ModelTimezone::get(&self.sqlite).await
             && Self::valid_change(current_time.to_time(), alarm.hour, alarm.minute).is_err()
         {
             self.too_close().await;
@@ -192,7 +192,7 @@ impl WSSender {
         }
 
         if TimeZone::get(&zone).is_ok() {
-            ModelTimezone::update(&self.db, &zone).await.ok();
+            ModelTimezone::update(&self.sqlite, &zone).await.ok();
             self.sx.send(CronMessage::Reset).await.ok();
             self.send_status().await;
         } else {
@@ -231,8 +231,8 @@ impl WSSender {
 
     /// Generate, and send, pi information
     pub async fn send_status(&self) {
-        let info = SysInfo::new(&self.db, &self.app_envs).await;
-        let alarms = ModelAlarm::get(&self.db).await.unwrap_or_default();
+        let info = SysInfo::new(&self.sqlite, &self.app_envs).await;
+        let alarms = ModelAlarm::get(&self.sqlite).await.unwrap_or_default();
         let info = PiStatus::new(info, alarms, self.connected_instant.elapsed().as_secs());
         self.send_ws_response(Response::Status(info), Some(true), None)
             .await;

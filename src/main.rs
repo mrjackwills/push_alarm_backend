@@ -20,6 +20,8 @@ use db::init_db;
 use word_art::Intro;
 use ws::open_connection;
 
+use crate::db::ModelObliqueStratergy;
+
 /// Simple macro to create a new String, or convert from a &str to  a String - basically just gets rid of String::from() / .to_owned() etc
 #[macro_export]
 macro_rules! S {
@@ -56,8 +58,8 @@ async fn start() -> Result<(), AppError> {
     let app_envs = AppEnv::get();
     setup_tracing(&app_envs);
     Intro::new(&app_envs).show();
-
     let sqlite = init_db(&app_envs).await?;
+    ModelObliqueStratergy::seed_stratergies(&sqlite).await?;
     close_signal();
     let sx = AlarmSchedule::init(C!(sqlite), C!(app_envs)).await?;
     open_connection(app_envs, sqlite, sx).await?;
@@ -65,7 +67,13 @@ async fn start() -> Result<(), AppError> {
 }
 #[tokio::main]
 async fn main() -> Result<(), AppError> {
-    tokio::spawn(start()).await.ok();
+    tokio::spawn(async move {
+        if let Err(e) = start().await {
+            tracing::error!("{e:?}");
+        }
+    })
+    .await
+    .ok();
     Ok(())
 }
 
@@ -80,9 +88,9 @@ mod tests {
 
     use crate::{app_env::AppEnv, db::init_db};
     /// Close database connection, and delete all test files
-    pub async fn test_cleanup(uuid: Uuid, db: Option<SqlitePool>) {
-        if let Some(db) = db {
-            db.close().await;
+    pub async fn test_cleanup(uuid: Uuid, sqlite: Option<SqlitePool>) {
+        if let Some(sqlite) = sqlite {
+            sqlite.close().await;
         }
         let sql_name = PathBuf::from(format!("/dev/shm/{uuid}.db"));
         let sql_sham = sql_name.join("-shm");
@@ -92,6 +100,7 @@ mod tests {
         tokio::fs::remove_file(sql_name).await.ok();
     }
 
+    /// The uuid is used as a file location for sqlite, at /dev/shm/{ uuid }.db
     pub fn gen_app_envs(uuid: Uuid) -> AppEnv {
         AppEnv {
             location_sqlite: format!("/dev/shm/{uuid}.db"),
@@ -110,8 +119,8 @@ mod tests {
     pub async fn test_setup() -> (AppEnv, SqlitePool, Uuid) {
         let uuid = Uuid::new_v4();
         let app_envs = gen_app_envs(uuid);
-        let db = init_db(&app_envs).await.unwrap();
-        (app_envs, db, uuid)
+        let sqlite = init_db(&app_envs).await.unwrap();
+        (app_envs, sqlite, uuid)
     }
 
     #[macro_export]
