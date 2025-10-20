@@ -9,7 +9,8 @@ impl ModelObliqueStrategy {
         transaction: &mut Transaction<'_, Sqlite>,
         trategy: &str,
     ) -> Result<(), AppError> {
-        let sql = "INSERT INTO oblique_strategies (strategy) VALUES($1) ON CONFLICT(strategy) DO NOTHING";
+        let sql =
+            "INSERT INTO oblique_strategies (strategy) VALUES($1) ON CONFLICT(strategy) DO NOTHING";
         sqlx::query(sql)
             .bind(trategy)
             .execute(&mut **transaction)

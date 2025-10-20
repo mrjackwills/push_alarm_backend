@@ -1,9 +1,6 @@
-### 2025-10-19
-
-### Chores
-+ dependencies updated, [04c217ecb3e82c22fee89237da19e0f4b3d6cbe5]
+### 2025-10-20
 
 ### Features
-+ optional alarm message, [55719c6eec8da3d337cd714a52d58059cbd3facb]
++ use oblique trategy instead of blank message, [46c6981147deeab6e30d171e857e9eaa42a56d64]
 
 see <a href='https://github.com/mrjackwills/push_alarm_backend/blob/main/CHANGELOG.md'>CHANGELOG.md</a> for more details
