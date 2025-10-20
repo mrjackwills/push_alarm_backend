@@ -1,12 +1,12 @@
 mod model_alarm;
-mod model_oblique_stratergy;
+mod model_oblique_strategy;
 mod model_request;
 mod model_timezone;
 
 use std::fs;
 
 pub use model_alarm::ModelAlarm;
-pub use model_oblique_stratergy::ModelObliqueStratergy;
+pub use model_oblique_strategy::ModelObliqueStrategy;
 pub use model_request::ModelRequest;
 pub use model_timezone::ModelTimezone;
 

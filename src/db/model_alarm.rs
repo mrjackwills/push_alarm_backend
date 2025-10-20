@@ -28,12 +28,11 @@ impl ModelAlarm {
         let sql = "SELECT
     alarm_id, hour, minute,
     CASE
-        WHEN message IS NULL OR message = '' THEN (SELECT stratergy FROM oblique_strategies ORDER BY RANDOM() LIMIT 1)
+        WHEN message IS NULL OR message = '' THEN (SELECT strategy FROM oblique_strategies ORDER BY RANDOM() LIMIT 1)
         ELSE message
     END AS message
 FROM
     alarm";
-        // fix this so that if message is none, return a random unqiue stratergy
         Ok(sqlx::query_as::<_, Self>(sql).fetch_optional(db).await?)
     }
 
@@ -75,7 +74,7 @@ mod tests {
     use std::collections::HashSet;
 
     use crate::{
-        db::ModelObliqueStratergy,
+        db::ModelObliqueStrategy,
         tests::{test_cleanup, test_setup},
     };
 
@@ -92,7 +91,7 @@ mod tests {
     async fn model_alarm_add_ok_msg_none() {
         let (_, sqlite, uuid) = test_setup().await;
         let data = HourMinuteMsg::from((10, 10, None));
-        ModelObliqueStratergy::seed_stratergies(&sqlite)
+        ModelObliqueStrategy::seed_stratergies(&sqlite)
             .await
             .unwrap();
 
@@ -117,7 +116,7 @@ mod tests {
     async fn model_alarm_add_ok_msg_some() {
         let (_, sqlite, uuid) = test_setup().await;
         let data = HourMinuteMsg::from((10, 10, Some("test".to_owned())));
-        ModelObliqueStratergy::seed_stratergies(&sqlite)
+        ModelObliqueStrategy::seed_stratergies(&sqlite)
             .await
             .unwrap();
 
@@ -160,7 +159,7 @@ mod tests {
     async fn model_alarm_update_ok() {
         let (_, sqlite, uuid) = test_setup().await;
         let data = HourMinuteMsg::from((10, 10, None));
-        ModelObliqueStratergy::seed_stratergies(&sqlite)
+        ModelObliqueStrategy::seed_stratergies(&sqlite)
             .await
             .unwrap();
         let all_strats = get_all_strats();

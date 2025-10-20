@@ -1,5 +1,5 @@
 ### Features
-+ use oblique stratergy instead of blank message, [46c6981147deeab6e30d171e857e9eaa42a56d64]
++ use oblique trategy instead of blank message, [46c6981147deeab6e30d171e857e9eaa42a56d64]
 
 # <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.4.0'>v0.4.0</a>
 ### 2025-10-19

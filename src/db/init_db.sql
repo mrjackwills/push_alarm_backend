@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS timezone (
 
 CREATE TABLE IF NOT EXISTS oblique_strategies  (
 	oblique_strategies_id INTEGER PRIMARY KEY AUTOINCREMENT,
-	stratergy TEXT NOT NULL UNIQUE
+	strategy TEXT NOT NULL UNIQUE
 ) STRICT;
 
 

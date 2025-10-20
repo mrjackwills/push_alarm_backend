@@ -20,7 +20,7 @@ use db::init_db;
 use word_art::Intro;
 use ws::open_connection;
 
-use crate::db::ModelObliqueStratergy;
+use crate::db::ModelObliqueStrategy;
 
 /// Simple macro to create a new String, or convert from a &str to  a String - basically just gets rid of String::from() / .to_owned() etc
 #[macro_export]
@@ -59,7 +59,7 @@ async fn start() -> Result<(), AppError> {
     setup_tracing(&app_envs);
     Intro::new(&app_envs).show();
     let sqlite = init_db(&app_envs).await?;
-    ModelObliqueStratergy::seed_stratergies(&sqlite).await?;
+    ModelObliqueStrategy::seed_stratergies(&sqlite).await?;
     close_signal();
     let sx = AlarmSchedule::init(C!(sqlite), C!(app_envs)).await?;
     open_connection(app_envs, sqlite, sx).await?;

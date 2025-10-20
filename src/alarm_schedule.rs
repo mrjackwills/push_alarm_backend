@@ -128,7 +128,6 @@ impl AlarmSchedule {
                 && alarm.minute == current_time.minute()
                 && current_time.second() == 0
             {
-                // something here wih alarm message and unique_strats?
                 sx.send(CronMessage::AlarmStart(alarm.message.clone()))
                     .await
                     .ok();
