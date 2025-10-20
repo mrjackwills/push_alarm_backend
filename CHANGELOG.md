@@ -1,3 +1,9 @@
+# <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.4.1'>v0.4.1</a>
+### 2025-10-20
+
+### Features
++ use oblique trategy instead of blank message, [46c69811](https://github.com/mrjackwills/push_alarm_backend/commit/46c6981147deeab6e30d171e857e9eaa42a56d64)
+
 # <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.4.0'>v0.4.0</a>
 ### 2025-10-19
 

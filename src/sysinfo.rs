@@ -45,27 +45,27 @@ mod tests {
 
     #[tokio::test]
     async fn sysinfo_getuptime_ok() {
-        let (_, db, uuid) = test_setup().await;
+        let (_, sqlite, uuid) = test_setup().await;
 
         let result = SysInfo::get_uptime().await;
 
         // Assumes ones computer has been turned on for one minute
         assert!(result > 60);
-        test_cleanup(uuid, Some(db)).await;
+        test_cleanup(uuid, Some(sqlite)).await;
     }
 
     #[tokio::test]
     async fn sysinfo_get_sysinfo_ok() {
-        let (app_envs, db, uuid) = test_setup().await;
+        let (app_envs, sqlite, uuid) = test_setup().await;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 
-        let result = SysInfo::new(&db, &app_envs).await;
+        let result = SysInfo::new(&sqlite, &app_envs).await;
 
         assert_eq!(result.time_zone, "Europe/London");
         assert_eq!(result.version, env!("CARGO_PKG_VERSION"));
         assert_eq!(result.uptime_app, 1);
         // Again assume ones computer has been turned on for one minute
         assert!(result.uptime > 60);
-        test_cleanup(uuid, Some(db)).await;
+        test_cleanup(uuid, Some(sqlite)).await;
     }
 }

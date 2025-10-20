@@ -6,7 +6,7 @@ FROM alpine AS setup
 
 # This should get automatically updated on every release via create_release.sh
 # DO NOT EDIT MANUALLY
-ARG CURRENT_VERSION=0.4.0
+ARG CURRENT_VERSION=0.4.1
 
 ARG DOCKER_APP_USER=app_user \
     DOCKER_APP_GROUP=app_group \

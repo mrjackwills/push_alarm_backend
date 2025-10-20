@@ -20,7 +20,7 @@ const TWENTY_FIVE_SEC: Duration = std::time::Duration::from_secs(25);
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CronMessage {
     Reset,
-    AlarmStart(Option<String>),
+    AlarmStart(String),
     AlarmDismiss,
 }
 
@@ -85,7 +85,7 @@ impl AlarmSchedule {
                     self.loop_alarm = Some(tokio::spawn(async move {
                         for i in 1..=40 {
                             if let Err(e) = PushRequest::Alarm(i)
-                                .make_request(&app_envs, &sqlite, msg.as_deref())
+                                .make_request(&app_envs, &sqlite, &msg)
                                 .await
                             {
                                 tracing::error!("{e}");

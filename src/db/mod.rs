@@ -1,10 +1,12 @@
 mod model_alarm;
+mod model_oblique_strategy;
 mod model_request;
 mod model_timezone;
 
 use std::fs;
 
 pub use model_alarm::ModelAlarm;
+pub use model_oblique_strategy::ModelObliqueStrategy;
 pub use model_request::ModelRequest;
 pub use model_timezone::ModelTimezone;
 
@@ -68,9 +70,9 @@ async fn get_db(app_envs: &AppEnv) -> Result<SqlitePool, sqlx::Error> {
 }
 
 /// Check if timezone in db, if not then insert
-async fn insert_env_timezone(db: &SqlitePool, app_envs: &AppEnv) {
-    if ModelTimezone::get(db).await.is_none() {
-        ModelTimezone::insert(db, app_envs)
+async fn insert_env_timezone(sqlite: &SqlitePool, app_envs: &AppEnv) {
+    if ModelTimezone::get(sqlite).await.is_none() {
+        ModelTimezone::insert(sqlite, app_envs)
             .await
             .unwrap_or_default();
     }
@@ -90,10 +92,10 @@ async fn create_tables(db: &SqlitePool) {
 /// Init db connection, works if folder/files exists or not
 pub async fn init_db(app_envs: &AppEnv) -> Result<SqlitePool, sqlx::Error> {
     file_exists(&app_envs.location_sqlite);
-    let db = get_db(app_envs).await?;
-    create_tables(&db).await;
-    insert_env_timezone(&db, app_envs).await;
-    Ok(db)
+    let sqlite = get_db(app_envs).await?;
+    create_tables(&sqlite).await;
+    insert_env_timezone(&sqlite, app_envs).await;
+    Ok(sqlite)
 }
 
 #[cfg(test)]
