@@ -39,14 +39,14 @@ impl WSSender {
     pub fn new(
         app_envs: &AppEnv,
         connected_instant: Instant,
-        db: &SqlitePool,
+        sqlite: &SqlitePool,
         sx: Sender<CronMessage>,
         writer: Arc<Mutex<WSWriter>>,
     ) -> Self {
         Self {
             app_envs: C!(app_envs),
             connected_instant,
-            sqlite: C!(db),
+            sqlite: C!(sqlite),
             sx,
             writer,
             unique: None,

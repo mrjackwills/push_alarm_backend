@@ -43,26 +43,26 @@ impl ModelTimezone {
         self.now_with_offset().time()
     }
 
-    pub async fn get(db: &SqlitePool) -> Option<Self> {
+    pub async fn get(sqlite: &SqlitePool) -> Option<Self> {
         let sql = "SELECT * FROM timezone";
-        let result = sqlx::query_as::<_, Self>(sql).fetch_one(db).await;
+        let result = sqlx::query_as::<_, Self>(sql).fetch_one(sqlite).await;
         result.ok()
     }
 
-    pub async fn insert(db: &SqlitePool, app_envs: &AppEnv) -> Result<Self, AppError> {
+    pub async fn insert(sqlite: &SqlitePool, app_envs: &AppEnv) -> Result<Self, AppError> {
         let sql = "INSERT INTO timezone (zone_name) VALUES($1) RETURNING timezone_id, zone_name";
         let query = sqlx::query_as::<_, Self>(sql)
             .bind(app_envs.timezone.iana_name().unwrap_or_default())
-            .fetch_one(db)
+            .fetch_one(sqlite)
             .await?;
         Ok(query)
     }
 
-    pub async fn update(db: &SqlitePool, zone_name: &str) -> Result<Self, AppError> {
+    pub async fn update(sqlite: &SqlitePool, zone_name: &str) -> Result<Self, AppError> {
         let sql = "UPDATE timezone SET zone_name = $1 RETURNING timezone_id, zone_name";
         let query = sqlx::query_as::<_, Self>(sql)
             .bind(zone_name)
-            .fetch_one(db)
+            .fetch_one(sqlite)
             .await?;
         Ok(query)
     }
@@ -88,13 +88,13 @@ mod tests {
         app_envs.timezone = TimeZone::UTC;
 
         file_exists(&app_envs.location_sqlite);
-        let db = get_db(&app_envs).await.unwrap();
-        create_tables(&db).await;
+        let sqlite = get_db(&app_envs).await.unwrap();
+        create_tables(&sqlite).await;
 
-        let result = ModelTimezone::get(&db).await;
+        let result = ModelTimezone::get(&sqlite).await;
 
         assert!(result.is_none());
-        test_cleanup(uuid, Some(db)).await;
+        test_cleanup(uuid, Some(sqlite)).await;
     }
 
     #[tokio::test]

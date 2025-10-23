@@ -64,7 +64,7 @@ impl ModelRequest {
 
     /// Count the number of request made in the past hour, based on type of request
     pub async fn count_past_hour(
-        db: &SqlitePool,
+        sqlite: &SqlitePool,
         push_request: &PushRequest,
     ) -> Result<i64, AppError> {
         let one_hour = 1
@@ -74,26 +74,26 @@ impl ModelRequest {
         let result = sqlx::query_as::<_, Count>(Self::count_query(push_request))
             .bind(Self::now_i64() - one_hour)
             .bind(Self::now_i64())
-            .fetch_one(db)
+            .fetch_one(sqlite)
             .await?;
         Ok(result.count)
     }
 
     // insert a new request with timestamp
-    pub async fn insert(db: &SqlitePool, push_request: &PushRequest) -> Result<Self, AppError> {
+    pub async fn insert(sqlite: &SqlitePool, push_request: &PushRequest) -> Result<Self, AppError> {
         let sql = "INSERT INTO request(timestamp, is_alarm) VALUES ($1, $2) RETURNING request_id, is_alarm, timestamp";
         let query = sqlx::query_as::<_, Self>(sql)
             .bind(Self::now_i64())
             .bind(Self::is_alarm(push_request))
-            .fetch_one(db)
+            .fetch_one(sqlite)
             .await?;
         Ok(query)
     }
 
     #[cfg(test)]
-    pub async fn test_get_all(db: &SqlitePool) -> Result<Vec<Self>, AppError> {
+    pub async fn test_get_all(sqlite: &SqlitePool) -> Result<Vec<Self>, AppError> {
         let sql = "SELECT * FROM request";
-        let result = sqlx::query_as::<_, Self>(sql).fetch_all(db).await?;
+        let result = sqlx::query_as::<_, Self>(sql).fetch_all(sqlite).await?;
         Ok(result)
     }
 }

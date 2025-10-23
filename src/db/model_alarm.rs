@@ -10,7 +10,7 @@ pub struct ModelAlarm {
     pub alarm_id: i64,
     pub hour: i8,
     pub minute: i8,
-    pub message: String,
+    pub message: Option<String>,
 }
 
 impl fmt::Display for ModelAlarm {
@@ -18,22 +18,27 @@ impl fmt::Display for ModelAlarm {
         write!(
             f,
             "alarm_id: {}, hour:{}, minute:{}, message: {}",
-            self.alarm_id, self.hour, self.minute, self.message
+            self.alarm_id,
+            self.hour,
+            self.minute,
+            self.message.as_ref().unwrap_or(&String::new())
         )
     }
 }
 
 impl ModelAlarm {
-    pub async fn get(db: &SqlitePool) -> Result<Option<Self>, AppError> {
+    pub async fn get(sqlite: &SqlitePool) -> Result<Option<Self>, AppError> {
         let sql = "SELECT
     alarm_id, hour, minute,
     CASE
-        WHEN message IS NULL OR message = '' THEN (SELECT strategy FROM oblique_strategies ORDER BY RANDOM() LIMIT 1)
+        WHEN message = '' THEN NULL
         ELSE message
     END AS message
 FROM
     alarm";
-        Ok(sqlx::query_as::<_, Self>(sql).fetch_optional(db).await?)
+        Ok(sqlx::query_as::<_, Self>(sql)
+            .fetch_optional(sqlite)
+            .await?)
     }
 
     pub async fn add(sqlite: &SqlitePool, data: HourMinuteMsg) -> Result<(), AppError> {
@@ -71,30 +76,14 @@ FROM
 #[cfg(test)]
 #[expect(clippy::unwrap_used)]
 mod tests {
-    use std::collections::HashSet;
-
-    use crate::{
-        db::ModelObliqueStrategy,
-        tests::{test_cleanup, test_setup},
-    };
+    use crate::tests::{test_cleanup, test_setup};
 
     use super::*;
-
-    fn get_all_strats() -> HashSet<String> {
-        include_str!("../db/oblique.txt")
-            .lines()
-            .map(std::borrow::ToOwned::to_owned)
-            .collect::<HashSet<_>>()
-    }
 
     #[tokio::test]
     async fn model_alarm_add_ok_msg_none() {
         let (_, sqlite, uuid) = test_setup().await;
         let data = HourMinuteMsg::from((10, 10, None));
-        ModelObliqueStrategy::seed_stratergies(&sqlite)
-            .await
-            .unwrap();
-
         let result = ModelAlarm::add(&sqlite, data).await;
         assert!(result.is_ok());
         let result = ModelAlarm::get(&sqlite).await;
@@ -107,8 +96,27 @@ mod tests {
         assert_eq!(result.hour, 10);
         assert_eq!(result.minute, 10);
 
-        let all_strats = get_all_strats();
-        assert!(all_strats.contains(&result.message));
+        assert!(result.message.is_none());
+        test_cleanup(uuid, Some(sqlite)).await;
+    }
+
+    #[tokio::test]
+    async fn model_alarm_add_ok_msg_empty_none() {
+        let (_, sqlite, uuid) = test_setup().await;
+        let data = HourMinuteMsg::from((10, 10, Some(String::new())));
+        let result = ModelAlarm::add(&sqlite, data).await;
+        assert!(result.is_ok());
+        let result = ModelAlarm::get(&sqlite).await;
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert!(result.is_some());
+        let result = result.unwrap();
+        assert_eq!(result.alarm_id, 1);
+        assert_eq!(result.hour, 10);
+        assert_eq!(result.minute, 10);
+
+        assert!(result.message.is_none());
         test_cleanup(uuid, Some(sqlite)).await;
     }
 
@@ -116,9 +124,6 @@ mod tests {
     async fn model_alarm_add_ok_msg_some() {
         let (_, sqlite, uuid) = test_setup().await;
         let data = HourMinuteMsg::from((10, 10, Some("test".to_owned())));
-        ModelObliqueStrategy::seed_stratergies(&sqlite)
-            .await
-            .unwrap();
 
         let result = ModelAlarm::add(&sqlite, data).await;
         assert!(result.is_ok());
@@ -131,7 +136,7 @@ mod tests {
         assert_eq!(result.alarm_id, 1);
         assert_eq!(result.hour, 10);
         assert_eq!(result.minute, 10);
-        assert_eq!(result.message, "test");
+        assert_eq!(result.message.unwrap(), "test");
         test_cleanup(uuid, Some(sqlite)).await;
     }
 
@@ -159,10 +164,6 @@ mod tests {
     async fn model_alarm_update_ok() {
         let (_, sqlite, uuid) = test_setup().await;
         let data = HourMinuteMsg::from((10, 10, None));
-        ModelObliqueStrategy::seed_stratergies(&sqlite)
-            .await
-            .unwrap();
-        let all_strats = get_all_strats();
 
         let result = ModelAlarm::add(&sqlite, data).await;
         assert!(result.is_ok());
@@ -178,7 +179,7 @@ mod tests {
         assert_eq!(result.alarm_id, 1);
         assert_eq!(result.hour, 10);
         assert_eq!(result.minute, 10);
-        assert!(all_strats.contains(&result.message));
+        assert!(result.message.is_none());
 
         let data = HourMinuteMsg::from((11, 11, Some(uuid.to_string())));
 
@@ -193,7 +194,8 @@ mod tests {
         assert_eq!(result.alarm_id, 1);
         assert_eq!(result.hour, 11);
         assert_eq!(result.minute, 11);
-        assert_eq!(result.message, uuid.to_string());
+        assert!(result.message.is_some());
+        assert_eq!(result.message.unwrap(), uuid.to_string());
 
         test_cleanup(uuid, Some(sqlite)).await;
     }

@@ -78,9 +78,9 @@ async fn insert_env_timezone(sqlite: &SqlitePool, app_envs: &AppEnv) {
     }
 }
 
-async fn create_tables(db: &SqlitePool) {
+async fn create_tables(sqlite: &SqlitePool) {
     let init_db = include_str!("init_db.sql");
-    match sqlx::query(init_db).execute(db).await {
+    match sqlx::query(init_db).execute(sqlite).await {
         Ok(_) => (),
         Err(e) => {
             error!("create_table::{e}");

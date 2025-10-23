@@ -10,7 +10,7 @@ use crate::{
     C,
     app_env::AppEnv,
     app_error::AppError,
-    db::{ModelAlarm, ModelTimezone},
+    db::{ModelAlarm, ModelObliqueStrategy, ModelTimezone},
     request::PushRequest,
 };
 
@@ -20,7 +20,7 @@ const TWENTY_FIVE_SEC: Duration = std::time::Duration::from_secs(25);
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CronMessage {
     Reset,
-    AlarmStart(String),
+    AlarmStart(Option<String>),
     AlarmDismiss,
 }
 
@@ -60,6 +60,19 @@ impl AlarmSchedule {
         Ok(sx)
     }
 
+    /// TODO test me
+    async fn get_message(sqlite: &SqlitePool, msg: Option<String>) -> String {
+        if let Some(msg) = msg
+            && !msg.is_empty()
+        {
+            msg
+        } else {
+            ModelObliqueStrategy::get_random(sqlite)
+                .await
+                .unwrap_or_else(|_| String::from("fix me"))
+        }
+    }
+
     async fn message_looper(&mut self) {
         while let Some(x) = self.rx.recv().await {
             match x {
@@ -81,7 +94,7 @@ impl AlarmSchedule {
                 CronMessage::AlarmStart(msg) => {
                     let sqlite = C!(self.sqlite);
                     let app_envs = C!(self.app_env);
-                    let msg = msg.clone();
+                    let msg = Self::get_message(&self.sqlite, msg).await;
                     self.loop_alarm = Some(tokio::spawn(async move {
                         for i in 1..=40 {
                             if let Err(e) = PushRequest::Alarm(i)
@@ -136,5 +149,40 @@ impl AlarmSchedule {
                 .saturating_sub(u64::try_from(start.elapsed().as_millis()).unwrap_or(ONE_SEC));
             tokio::time::sleep(std::time::Duration::from_millis(to_sleep)).await;
         }
+    }
+}
+
+#[cfg(test)]
+#[expect(clippy::unwrap_used)]
+mod tests {
+
+    use std::collections::HashSet;
+
+    use crate::tests::{test_cleanup, test_setup};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn model_oblique_trategy_seed() {
+        let (_, sqlite, uuid) = test_setup().await;
+        ModelObliqueStrategy::seed_stratergies(&sqlite)
+            .await
+            .unwrap();
+
+        let all_stratergies = include_str!("../src/db/oblique.txt");
+        let mut set = HashSet::new();
+        for i in all_stratergies.lines() {
+            set.insert(i.to_owned());
+        }
+
+        let result = AlarmSchedule::get_message(&sqlite, Some("custom".to_owned())).await;
+        assert_eq!(result, "custom");
+
+        let result = AlarmSchedule::get_message(&sqlite, Some(String::new())).await;
+        assert!(set.contains(&result));
+
+        let result = AlarmSchedule::get_message(&sqlite, None).await;
+        assert!(set.contains(&result));
+        test_cleanup(uuid, Some(sqlite)).await;
     }
 }
