@@ -1,3 +1,6 @@
+### Fixes
++ correctly randomise oblique strategy, [a9ad358122bd2029c91f62660976ef026d181026]
+
 # <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.4.1'>v0.4.1</a>
 ### 2025-10-20
 
