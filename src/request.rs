@@ -36,7 +36,7 @@ impl PushRequest {
         } else {
             ModelObliqueStrategy::get_random(sqlite)
                 .await
-                .unwrap_or_else(|_| String::from("fix me"))
+                .unwrap_or_else(|_| String::new())
         }
     }
     /// How many requests can be made in the previous hour

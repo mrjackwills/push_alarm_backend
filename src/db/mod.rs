@@ -95,7 +95,7 @@ pub async fn init_db(app_envs: &AppEnv) -> Result<SqlitePool, AppError> {
     let sqlite = get_db(app_envs).await?;
     create_tables(&sqlite).await;
     insert_env_timezone(&sqlite, app_envs).await;
-	ModelObliqueStrategy::seed_stratergies(&sqlite).await?;
+    ModelObliqueStrategy::seed_stratergies(&sqlite).await?;
     Ok(sqlite)
 }
 

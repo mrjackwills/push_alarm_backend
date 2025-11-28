@@ -22,9 +22,7 @@ use word_art::Intro;
 use async_channel::Sender;
 use mimalloc::MiMalloc;
 
-use crate::{
-    message_handler::{MessageHandler, Msg},
-};
+use crate::message_handler::{MessageHandler, Msg};
 
 fn close_signal(tx: &Sender<Msg>) {
     let tx = C!(tx);
@@ -81,9 +79,13 @@ mod tests {
         let sql_name = PathBuf::from(format!("/dev/shm/{uuid}.db"));
         let sql_sham = sql_name.join("-shm");
         let sql_wal = sql_name.join("-wal");
-        tokio::fs::remove_file(sql_wal).await.ok();
-        tokio::fs::remove_file(sql_sham).await.ok();
-        tokio::fs::remove_file(sql_name).await.ok();
+
+        tokio::try_join!(
+            tokio::fs::remove_file(sql_wal),
+            tokio::fs::remove_file(sql_sham),
+            tokio::fs::remove_file(sql_name)
+        )
+        .ok();
     }
 
     /// The uuid is used as a file location for sqlite, at /dev/shm/{ uuid }.db
