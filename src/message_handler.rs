@@ -33,7 +33,7 @@ pub struct WSResponse {
 
 #[derive(Debug)]
 pub enum Msg {
-    AlarmDissmiss,
+    AlarmDismiss,
     AlarmStart(Option<String>),
     AlarmLoopReset,
     Exit,
@@ -127,7 +127,7 @@ impl MessageHandler {
                 Msg::AlarmLoopReset => {
                     self.alarm_schedule.start_alarm_thread(&self.sqlite).await;
                 }
-                Msg::AlarmDissmiss => {
+                Msg::AlarmDismiss => {
                     if let Some(token) = &self.alarm_token {
                         token.cancel();
                     }

@@ -172,7 +172,7 @@ impl WSSender {
     }
     /// Add a new alarm to database, and update alarm_schedule
     async fn alarm_dismiss(&self) {
-        self.tx.send(Msg::AlarmDissmiss).await.ok();
+        self.tx.send(Msg::AlarmDismiss).await.ok();
     }
 
     /// Update the alarm in the database, and update alarm_schedule
