@@ -6,7 +6,7 @@ pub enum AppError {
     DbNameInvalid(String),
     #[error("missing env: '{0}'")]
     MissingEnv(String),
-    #[error("Reqwest Error")]
+    #[error("Reqwest Error: '{0}'")]
     Reqwest(#[from] reqwest::Error),
     #[error("Internal Database Error: {0}")]
     Sqlx(#[from] sqlx::Error),

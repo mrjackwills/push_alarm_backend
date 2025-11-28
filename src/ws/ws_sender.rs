@@ -1,88 +1,116 @@
-use futures_util::SinkExt;
-use futures_util::lock::Mutex;
+use async_channel::Sender;
 use jiff::civil::Time;
 use jiff::tz::TimeZone;
 use sqlx::SqlitePool;
-use std::{process, sync::Arc, time::Instant};
-use tokio::sync::mpsc::Sender;
-use tracing::{error, trace};
+use std::{process, time::Instant};
 
 use crate::C;
-use crate::alarm_schedule::CronMessage;
+use crate::db::{ModelAlarm, ModelTimezone};
+use crate::message_handler::{Msg, WSResponse};
 use crate::request::PushRequest;
 use crate::sysinfo::SysInfo;
 use crate::ws_messages::{
-    HourMinuteMsg, MessageValues, ParsedMessage, PiStatus, Response, StructuredResponse,
-    TestRequest,
+    HourMinuteMsg, MessageValues, ParsedMessage, PiStatus, Response, TestRequest,
 };
-use crate::{
-    app_env::AppEnv,
-    db::{ModelAlarm, ModelTimezone},
-    ws_messages::to_struct,
-};
+use crate::{app_env::AppEnv, ws_messages::to_struct};
 
 const ONE_HOUR_AS_SEC: i64 = 60 * 60;
-
-use super::WSWriter;
 
 #[derive(Debug, Clone)]
 pub struct WSSender {
     app_envs: AppEnv,
     connected_instant: Instant,
     sqlite: SqlitePool,
-    sx: Sender<CronMessage>,
-    writer: Arc<Mutex<WSWriter>>,
-    unique: Option<String>,
+    tx: Sender<Msg>,
 }
 
 impl WSSender {
-    pub fn new(
-        app_envs: &AppEnv,
-        connected_instant: Instant,
-        sqlite: &SqlitePool,
-        sx: Sender<CronMessage>,
-        writer: Arc<Mutex<WSWriter>>,
-    ) -> Self {
+    pub fn new(app_envs: &AppEnv, sqlite: &SqlitePool, tx: &Sender<Msg>) -> Self {
         Self {
             app_envs: C!(app_envs),
-            connected_instant,
+            connected_instant: std::time::Instant::now(),
             sqlite: C!(sqlite),
-            sx,
-            writer,
-            unique: None,
+            tx: C!(tx),
         }
+    }
+    /// Update the connected_instance time
+    pub fn on_connection(&mut self) {
+        self.connected_instant = std::time::Instant::now();
     }
 
     /// Handle text message, in this program they will all be json text
-    pub async fn on_text(&mut self, message: String) {
+    pub async fn on_text(&self, message: String) {
         if let Some(data) = to_struct(&message) {
             match data {
-                MessageValues::Invalid(error) => error!("invalid::{error:?}"),
-                MessageValues::Valid(msg, unique) => {
-                    self.unique = Some(unique);
-                    match msg {
-                        ParsedMessage::AlarmAdd(hm) => self.alarm_add(hm).await,
-                        ParsedMessage::AlarmDelete => self.alarm_delete().await,
-                        ParsedMessage::AlarmDismiss => self.alarm_dismiss().await,
-                        ParsedMessage::AlarmUpdate(hm) => self.alarm_update(hm).await,
-                        ParsedMessage::Restart => self.restart().await,
-                        ParsedMessage::Status => self.send_status().await,
-                        ParsedMessage::TestRequest(msg) => self.test_request(msg).await,
-                        ParsedMessage::TimeZone(timezone) => self.time_zone(timezone.zone).await,
+                MessageValues::Invalid(error) => tracing::error!("invalid::{error:?}"),
+                MessageValues::Valid(msg, unique) => match msg {
+                    ParsedMessage::AlarmAdd(hm) => self.alarm_add(hm).await,
+                    ParsedMessage::AlarmDelete => self.alarm_delete(unique).await,
+                    ParsedMessage::AlarmDismiss => self.alarm_dismiss().await,
+                    ParsedMessage::AlarmUpdate(hm) => self.alarm_update(hm, unique).await,
+                    ParsedMessage::Restart => self.restart().await,
+                    ParsedMessage::Status => self.send_status().await,
+                    ParsedMessage::TestRequest(msg) => self.test_request(msg).await,
+                    ParsedMessage::TimeZone(timezone) => {
+                        self.time_zone(timezone.zone, unique).await;
                     }
-                }
+                },
             }
         }
     }
 
-    /// Send a test request of a given message
-    async fn test_request(&self, msg: TestRequest) {
-        if let Err(e) = PushRequest::TestRequest
-            .make_request(&self.app_envs, &self.sqlite, &msg.message)
-            .await
-        {
-            tracing::error!("{e}");
+    /// Generate, and send, pi information
+    pub async fn send_status(&self) {
+        let (info, alarms) = tokio::join!(
+            SysInfo::new(&self.sqlite, &self.app_envs),
+            ModelAlarm::get(&self.sqlite)
+        );
+
+        let info = PiStatus::new(
+            info,
+            alarms.unwrap_or_default(),
+            self.connected_instant.elapsed().as_secs(),
+        );
+        self.send_ws_response(WSResponse {
+            response: Response::Status(info),
+            cache: Some(true),
+            unique: None,
+        })
+        .await;
+    }
+
+    /// Send a message to close the socket
+    async fn close(&self) {
+        self.tx.send(Msg::WsClose).await.ok();
+    }
+
+    /// Send a unique error message
+    async fn send_error(&self, message: &str, unique: Option<String>) {
+        self.send_ws_response(WSResponse {
+            response: Response::Error(message.to_owned()),
+            cache: None,
+            unique,
+        })
+        .await;
+    }
+
+    async fn send_ws_response(&self, response: WSResponse) {
+        match self.tx.send(Msg::ToSend(response)).await {
+            Ok(()) => (),
+            Err(e) => {
+                tracing::error!("{e}");
+            }
         }
+    }
+
+    /// Restart alarm loop, and send status to client
+    async fn reset_alarm_send_status(&self) {
+        _ = tokio::join!(self.tx.send(Msg::AlarmLoopReset), self.send_status());
+    }
+
+    async fn too_close(&self, unique: String) {
+        self.send_error("Current time too close to alarm to edit", Some(unique))
+            .await;
     }
 
     /// Validate that an alarm can be edited, need to be more than six hour difference
@@ -121,20 +149,13 @@ impl WSSender {
     async fn alarm_add(&self, hm: HourMinuteMsg) {
         if let Err(e) = ModelAlarm::add(&self.sqlite, hm).await {
             tracing::error!("{e}");
-            self.send_error(&format!("{e}")).await;
         } else {
-            self.sx.send(CronMessage::Reset).await.ok();
-            self.send_status().await;
+            self.reset_alarm_send_status().await;
         }
     }
 
-    /// Add a new alarm to database, and update alarm_schedule
-    async fn alarm_dismiss(&self) {
-        self.sx.send(CronMessage::AlarmDismiss).await.ok();
-    }
-
     /// Delete all alarm in database, and update alarm_schedule
-    async fn alarm_delete(&self) {
+    async fn alarm_delete(&self, unique: String) {
         if let Ok(Some(alarm)) = ModelAlarm::get(&self.sqlite).await
             && let Some(current_time) = ModelTimezone::get(&self.sqlite).await
         {
@@ -143,16 +164,19 @@ impl WSSender {
                 if let Err(e) = ModelAlarm::delete(&self.sqlite).await {
                     tracing::error!("{e}");
                 }
-                self.sx.send(CronMessage::Reset).await.ok();
-                self.send_status().await;
+                self.reset_alarm_send_status().await;
             } else {
-                self.too_close().await;
+                self.too_close(unique).await;
             }
         }
     }
+    /// Add a new alarm to database, and update alarm_schedule
+    async fn alarm_dismiss(&self) {
+        self.tx.send(Msg::AlarmDismiss).await.ok();
+    }
 
     /// Update the alarm in the database, and update alarm_schedule
-    async fn alarm_update(&self, hm: HourMinuteMsg) {
+    async fn alarm_update(&self, hm: HourMinuteMsg, unique: String) {
         if let Ok(Some(alarm)) = ModelAlarm::get(&self.sqlite).await
             && let Some(current_time) = ModelTimezone::get(&self.sqlite).await
         {
@@ -161,17 +185,11 @@ impl WSSender {
                 if let Err(e) = ModelAlarm::update(&self.sqlite, hm).await {
                     tracing::error!("{e}");
                 }
-                self.sx.send(CronMessage::Reset).await.ok();
-                self.send_status().await;
+                self.reset_alarm_send_status().await;
             } else {
-                self.too_close().await;
+                self.too_close(unique).await;
             }
         }
-    }
-
-    async fn too_close(&self) {
-        self.send_error("Current time too close to alarm to edit")
-            .await;
     }
 
     /// Force quite program, assumes running in an auto-restart container, or systemd, in order to start again immediately
@@ -180,73 +198,33 @@ impl WSSender {
         process::exit(0);
     }
 
+    /// Send a test request of a given message
+    async fn test_request(&self, msg: TestRequest) {
+        if let Err(e) = PushRequest::TestRequest
+            .make_request(&self.app_envs, &self.sqlite, &msg.message)
+            .await
+        {
+            tracing::error!("{e}");
+        }
+    }
+
     /// Change the timezone in database to new given database,
     /// also update timezone in alarm scheduler
-    async fn time_zone(&self, zone: String) {
+    async fn time_zone(&self, zone: String, unique: String) {
         if let Some(alarm) = ModelAlarm::get(&self.sqlite).await.unwrap_or_default()
             && let Some(current_time) = ModelTimezone::get(&self.sqlite).await
             && Self::valid_change(current_time.to_time(), alarm.hour, alarm.minute).is_err()
         {
-            self.too_close().await;
+            self.too_close(unique).await;
             return;
         }
 
         if TimeZone::get(&zone).is_ok() {
             ModelTimezone::update(&self.sqlite, &zone).await.ok();
-            self.sx.send(CronMessage::Reset).await.ok();
-            self.send_status().await;
+            self.reset_alarm_send_status().await;
         } else {
-            self.send_error("Invalid timezone").await;
+            self.send_error("Invalid timezone", Some(unique)).await;
         }
-    }
-
-    /// Send a message to the socket
-    /// cache could just be Option<()>, and if some then send true?
-    async fn send_ws_response(
-        &self,
-        response: Response,
-        cache: Option<bool>,
-        unique: Option<String>,
-    ) {
-        match self
-            .writer
-            .lock()
-            .await
-            .send(StructuredResponse::data(response, cache, unique))
-            .await
-        {
-            Ok(()) => trace!("Message sent"),
-            Err(e) => {
-                error!("send_ws_response::SEND-ERROR::{e:?}");
-                process::exit(1);
-            }
-        }
-    }
-
-    /// Send a unique error message
-    pub async fn send_error(&self, message: &str) {
-        self.send_ws_response(Response::Error(message.to_owned()), None, C!(self.unique))
-            .await;
-    }
-
-    /// Generate, and send, pi information
-    pub async fn send_status(&self) {
-        let info = SysInfo::new(&self.sqlite, &self.app_envs).await;
-        let alarms = ModelAlarm::get(&self.sqlite).await.unwrap_or_default();
-        let info = PiStatus::new(info, alarms, self.connected_instant.elapsed().as_secs());
-        self.send_ws_response(Response::Status(info), Some(true), None)
-            .await;
-    }
-
-    /// close connection, uses a 2 second timeout
-    pub async fn close(&self) {
-        tokio::time::timeout(
-            std::time::Duration::from_secs(2),
-            self.writer.lock().await.close(),
-        )
-        .await
-        .ok()
-        .map(std::result::Result::ok);
     }
 }
 
