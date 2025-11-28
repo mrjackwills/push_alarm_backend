@@ -1,8 +1,11 @@
+# <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.5.0'>v0.5.0</a>
+### 2025-11-28
+
 ### Chores
-+ dependencies updated, [ef99c738b0b147693bc76caf7ef48368bdcd9b3d]
++ dependencies updated, [ef99c738](https://github.com/mrjackwills/push_alarm_backend/commit/ef99c738b0b147693bc76caf7ef48368bdcd9b3d)
 
 ### Features
-+ use async_channels & global message handler, [a35e364e7531a25797cda3adc9566987e00da58d]
++ use async_channels & global message handler, [a35e364e](https://github.com/mrjackwills/push_alarm_backend/commit/a35e364e7531a25797cda3adc9566987e00da58d)
 
 # <a href='https://github.com/mrjackwills/push_alarm_backend/releases/tag/v0.4.2'>v0.4.2</a>
 ### 2025-10-23
