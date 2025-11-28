@@ -3,7 +3,12 @@ use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use url::Url;
 
-use crate::{C, app_env::AppEnv, app_error::AppError, db::ModelRequest};
+use crate::{
+    C,
+    app_env::AppEnv,
+    app_error::AppError,
+    db::{ModelObliqueStrategy, ModelRequest},
+};
 
 /// Pushover api url
 const URL: &str = "https://api.pushover.net/1/messages.json";
@@ -23,6 +28,17 @@ pub enum PushRequest {
 }
 
 impl PushRequest {
+    pub async fn get_message(sqlite: &SqlitePool, msg: Option<String>) -> String {
+        if let Some(msg) = msg
+            && !msg.is_empty()
+        {
+            msg
+        } else {
+            ModelObliqueStrategy::get_random(sqlite)
+                .await
+                .unwrap_or_else(|_| String::from("fix me"))
+        }
+    }
     /// How many requests can be made in the previous hour
     const fn hour_limit(&self) -> i64 {
         match self {
@@ -114,14 +130,12 @@ impl PushRequest {
         if requests_made >= self.hour_limit() {
             Err(AppError::TooManyRequests(requests_made))
         } else {
-            tracing::debug!("Sending request");
             let params = self.gen_params(app_envs, msg);
             let url = reqwest::Url::parse_with_params(URL, &params)?;
+            tracing::debug!("Sending request");
             self.insert_request(sqlite).await?;
-
             Self::send_request(url).await?;
             // do something with the response here?
-            tracing::debug!("Request sent");
             Ok(())
         }
     }
@@ -130,6 +144,8 @@ impl PushRequest {
 #[cfg(test)]
 #[expect(clippy::unwrap_used)]
 mod tests {
+
+    use std::collections::HashSet;
 
     use super::*;
     use crate::{
@@ -309,6 +325,30 @@ mod tests {
         assert!(request_len.is_ok());
         assert_eq!(request_len.unwrap().len(), 1);
 
+        test_cleanup(uuid, Some(sqlite)).await;
+    }
+
+    #[tokio::test]
+    async fn model_oblique_trategy_seed() {
+        let (_, sqlite, uuid) = test_setup().await;
+        ModelObliqueStrategy::seed_stratergies(&sqlite)
+            .await
+            .unwrap();
+
+        let all_stratergies = include_str!("../src/db/oblique.txt");
+        let mut set = HashSet::new();
+        for i in all_stratergies.lines() {
+            set.insert(i.to_owned());
+        }
+
+        let result = PushRequest::get_message(&sqlite, Some("custom".to_owned())).await;
+        assert_eq!(result, "custom");
+
+        let result = PushRequest::get_message(&sqlite, Some(String::new())).await;
+        assert!(set.contains(&result));
+
+        let result = PushRequest::get_message(&sqlite, None).await;
+        assert!(set.contains(&result));
         test_cleanup(uuid, Some(sqlite)).await;
     }
 }

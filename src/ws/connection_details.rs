@@ -59,8 +59,4 @@ impl ConnectionDetails {
             jiff::Zoned::now().timestamp().strftime("%Y-%m-%d %H:%M:%S")
         );
     }
-
-    pub fn get_connect_instant(&self) -> Instant {
-        self.connection_instant.unwrap_or_else(Instant::now)
-    }
 }

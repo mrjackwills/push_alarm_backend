@@ -13,7 +13,7 @@ pub use model_timezone::ModelTimezone;
 use sqlx::{ConnectOptions, SqlitePool, sqlite::SqliteJournalMode};
 use tracing::error;
 
-use crate::app_env::AppEnv;
+use crate::{app_env::AppEnv, app_error::AppError};
 
 /// If file doesn't exist on disk, create
 /// Probably can be removed, as sqlx has a setting to create file if not found
@@ -90,11 +90,12 @@ async fn create_tables(sqlite: &SqlitePool) {
 }
 
 /// Init db connection, works if folder/files exists or not
-pub async fn init_db(app_envs: &AppEnv) -> Result<SqlitePool, sqlx::Error> {
+pub async fn init_db(app_envs: &AppEnv) -> Result<SqlitePool, AppError> {
     file_exists(&app_envs.location_sqlite);
     let sqlite = get_db(app_envs).await?;
     create_tables(&sqlite).await;
     insert_env_timezone(&sqlite, app_envs).await;
+	ModelObliqueStrategy::seed_stratergies(&sqlite).await?;
     Ok(sqlite)
 }
 
